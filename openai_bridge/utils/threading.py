@@ -1,52 +1,15 @@
-import requests
-import json
 import bpy
+import json
 import os
+import requests
 import threading
 import time
-import uuid
 from urllib.parse import urlparse
 
-
-bl_info = {
-    "name": "OpenAI Bridge",
-    "author": "nutti",
-    "version": (0, 1, 0),
-    "blender": (3, 5, 0),
-    "location": "3D View",
-    "warning": "",
-    "description": "Bridge between Blender and OpenAI",
-    "doc_url": "",
-    "tracker_url": "",
-    "category": "System",
-}
-
-
-def get_area_region_space(context, area_type, region_type, space_type):
-    area = None
-    region = None
-    space = None
-
-    for a in context.screen.areas:
-        if a.type == area_type:
-            area = a
-            break
-    else:
-        return area, region, space
-
-    for r in a.regions:
-        if r.type == region_type:
-            region = r
-            break
-    else:
-        return area, region, space
-
-    for s in area.spaces:
-        if s.type == space_type:
-            space = s
-            break
-
-    return area, region, space
+from ..utils.common import (
+    get_area_region_space,
+    DATA_DIR,
+)
 
 
 class OPENAI_OT_ProcessMessage(bpy.types.Operator):
@@ -139,17 +102,25 @@ class OPENAI_OT_ProcessMessage(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
-class OPENAI_OT_Test(bpy.types.Operator):
+class OPENAI_OT_Error(bpy.types.Operator):
 
-    bl_idname = "system.openai_test"
-    bl_description = "Test"
-    bl_label = "Test"
-    bl_options = {'REGISTER', 'UNDO'}
+    bl_idname = "system.openai_error"
+    bl_description = "Notify the error"
+    bl_label = "Error"
 
-    _handle = None
+    error_message: bpy.props.StringProperty(
+        name="Error Message"
+    )
 
     def invoke(self, context, event):
-        return {'FINISHED'}
+        print(self.error_message)
+
+        wm = context.window_manager
+        return wm.invoke_popup(self)
+
+    def draw(self, context):
+        layout = self.layout
+        layout.label(text=self.error_message)
 
 
 class MessageQueue:
@@ -221,7 +192,7 @@ class RequestHandler:
         image_data = response.content
 
         # Save image
-        dirname = f"{os.path.dirname(__file__)}/_data"
+        dirname = DATA_DIR
         os.makedirs(dirname, exist_ok=True)
         if options["image_name"] == "":
             filename = urlparse(download_url).path.split("/")[-1]
@@ -286,128 +257,6 @@ class RequestHandler:
                     MessageQueue.add_message(key, 'ERROR', {"exception": e}, None)
 
 
-class OPENAI_OT_GeneateImage(bpy.types.Operator):
-
-    bl_idname = "system.openai_generate_image"
-    bl_description = "Generate image via OpenAI API"
-    bl_label = "Generate Image"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    prompt: bpy.props.StringProperty(
-        name="Prompt",
-    )
-    num_images: bpy.props.IntProperty(
-        name="Number of Images",
-        description="How many images to generate",
-        default=1,
-        min=1,
-        max=10,
-    )
-    image_size: bpy.props.EnumProperty(
-        name="Image Size",
-        description="The size of the images to generate",
-        items=[
-            ('256x256', "256x256", "256x256"),
-            ('512x512', "512x512", "512x512"),
-            ('1024x1024', "1024x1024", "1024x1024"),
-        ]
-    )
-    image_name: bpy.props.StringProperty(
-        name="Image Name",
-        description="Name of image data block"
-    )
-    remove_file: bpy.props.BoolProperty(
-        name="Remove File",
-        description="If true, remove generated files after the image block is loaded",
-        default=False,
-    )
-
-    def invoke(self, context, event):
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self)
-
-    def execute(self, context):
-        user_prefs = context.preferences
-        prefs = user_prefs.addons["openai"].preferences
-        api_key = prefs.api_key
-
-        message_key = uuid.uuid4()
-        OPENAI_OT_ProcessMessage.message_keys_lock.acquire()
-        OPENAI_OT_ProcessMessage.message_keys.add(message_key)
-        OPENAI_OT_ProcessMessage.message_keys_lock.release()
-
-        request = {
-            "prompt": self.prompt,
-            "n": self.num_images,
-            "size": self.image_size,
-            "response_format": "url",
-        }
-        options = {
-            "remove_file": self.remove_file,
-            "image_name": self.image_name,
-        }
-        RequestHandler.add_request(api_key, [message_key], 'IMAGE', request, options)
-
-        # Run Message Processing Timer if it has not launched yet.
-        bpy.ops.system.openai_process_message()
-
-        print(f"Sent Request: f{request}")
-        return {'FINISHED'}
-
-
-class OPENAI_OT_Chat(bpy.types.Operator):
-
-    bl_idname = "system.openai_chat"
-    bl_description = "Chat via OpenAI API"
-    bl_label = "Chat"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    _draw_handler = None
-
-    prompt: bpy.props.StringProperty(
-        name="Prompt",
-    )
-    text_name: bpy.props.StringProperty(
-        name="Text Name",
-        description="Name of the text data block in which the chat log is stored"
-    )
-
-    def invoke(self, context, event):
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self)
-
-    def execute(self, context):
-        user_prefs = context.preferences
-        prefs = user_prefs.addons["openai"].preferences
-        api_key = prefs.api_key
-
-        message_key_for_to = uuid.uuid4()
-        message_key_for_from = uuid.uuid4()
-        OPENAI_OT_ProcessMessage.message_keys_lock.acquire()
-        OPENAI_OT_ProcessMessage.message_keys.add(message_key_for_to)
-        OPENAI_OT_ProcessMessage.message_keys.add(message_key_for_from)
-        OPENAI_OT_ProcessMessage.message_keys_lock.release()
-
-        request = {
-            "model": "gpt-3.5-turbo",
-            "messages": [
-                {
-                    "role": "system",
-                    "content": self.prompt
-                }
-            ]
-        }
-        options = {
-            "text_name": self.text_name
-        }
-        RequestHandler.add_request(api_key, [message_key_for_to, message_key_for_from], 'CHAT', request, options)
-
-        # Run Message Processing Timer if it has not launched yet.
-        bpy.ops.system.openai_process_message()
-
-        print(f"Sent Request: f{request}")
-        return {'FINISHED'}
-
 
 class OPENAI_OT_Error(bpy.types.Operator):
 
@@ -428,83 +277,3 @@ class OPENAI_OT_Error(bpy.types.Operator):
     def draw(self, context):
         layout = self.layout
         layout.label(text=self.error_message)
-
-
-class OPENAI_WST_OpenAIImageTool(bpy.types.WorkSpaceTool):
-
-    bl_idname = "openai.openai_image_tool"
-    bl_label = "OpenAI Image Tool"
-    bl_description = "Image tools that uses OpenAI API"
-    bl_space_type = 'VIEW_3D'
-    bl_context_mode = 'OBJECT'
-
-    bl_keymap = (
-        (
-            OPENAI_OT_GeneateImage.bl_idname,
-            {"type": 'G', "value": 'PRESS'},
-            {},
-        ),
-    )
-
-    def draw_settings(context, layout, tool):
-        props = tool.operator_properties(OPENAI_OT_GeneateImage.bl_idname)
-        layout.prop(props, "num_images")
-        layout.prop(props, "image_size")
-
-
-class OPENAI_WST_OpenAIChatTool(bpy.types.WorkSpaceTool):
-
-    bl_idname = "openai.openai_chat_tool"
-    bl_label = "OpenAI Chat Tool"
-    bl_description = "Chat tools that uses OpenAI API"
-    bl_space_type = 'VIEW_3D'
-    bl_context_mode = 'OBJECT'
-
-    bl_keymap = (
-        (
-            OPENAI_OT_Chat.bl_idname,
-            {"type": 'C', "value": 'PRESS'},
-            {},
-        ),
-    )
-
-    def draw_settings(context, layout, tool):
-        props = tool.operator_properties(OPENAI_OT_Chat.bl_idname)
-        layout.prop(props, "text_name")
-
-
-class OPENAI_Preferences(bpy.types.AddonPreferences):
-    bl_idname = "openai"
-
-    api_key: bpy.props.StringProperty(
-        name="API Key",
-    )
-
-    def draw(self, _):
-        layout = self.layout
-        layout.prop(self, "api_key")
-
-
-classes = [
-    OPENAI_OT_ProcessMessage,
-    OPENAI_OT_GeneateImage,
-    OPENAI_OT_Chat,
-    OPENAI_OT_Error,
-    OPENAI_Preferences,
-]
-
-
-def register():
-    for cls in classes:
-        bpy.utils.register_class(cls)
-    bpy.utils.register_tool(OPENAI_WST_OpenAIImageTool, separator=True, group=True)
-    bpy.utils.register_tool(OPENAI_WST_OpenAIChatTool, after={OPENAI_WST_OpenAIImageTool.bl_idname})
-    RequestHandler.start()
-
-
-def unregister():
-    RequestHandler.stop()
-    bpy.utils.unregister_tool(OPENAI_WST_OpenAIChatTool)
-    bpy.utils.unregister_tool(OPENAI_WST_OpenAIImageTool)
-    for cls in reversed(classes):
-        bpy.utils.unregister_class(cls)
