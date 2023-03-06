@@ -298,12 +298,14 @@ class OPENAI_OT_GeneateImage(bpy.types.Operator):
     )
     num_images: bpy.props.IntProperty(
         name="Number of Images",
+        description="How many images to generate",
         default=1,
         min=1,
         max=10,
     )
     image_size: bpy.props.EnumProperty(
         name="Image Size",
+        description="The size of the images to generate",
         items=[
             ('256x256', "256x256", "256x256"),
             ('512x512', "512x512", "512x512"),
@@ -312,11 +314,11 @@ class OPENAI_OT_GeneateImage(bpy.types.Operator):
     )
     image_name: bpy.props.StringProperty(
         name="Image Name",
-        description="Name of image data block that saves the chat log"
+        description="Name of image data block"
     )
     remove_file: bpy.props.BoolProperty(
         name="Remove File",
-        description="Remove generated files",
+        description="If true, remove generated files after the image block is loaded",
         default=False,
     )
 
@@ -367,7 +369,7 @@ class OPENAI_OT_Chat(bpy.types.Operator):
     )
     text_name: bpy.props.StringProperty(
         name="Text Name",
-        description="Name of text data block that saves the chat log"
+        description="Name of the text data block in which the chat log is stored"
     )
 
     def invoke(self, context, event):
