@@ -1,6 +1,7 @@
 import os
 
 DATA_DIR = f"{os.path.dirname(__file__)}/../_data"
+ICON_DIR = f"{os.path.dirname(__file__)}/../icon"
 
 
 def get_area_region_space(context, area_type, region_type, space_type):

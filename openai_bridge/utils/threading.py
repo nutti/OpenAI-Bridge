@@ -44,6 +44,16 @@ class OPENAI_OT_ProcessMessage(bpy.types.Operator):
                 space.image = new_image
             if options["remove_file"]:
                 os.remove(filepath)
+        elif msg_type == 'AUDIO':
+            text = data["text"]
+            if options["text_name"] not in bpy.data.texts:
+                bpy.data.texts.new(options["text_name"])
+            text_data = bpy.data.texts[options["text_name"]]
+            text_data.write(text)
+            # Focus on the text in Text Editor.
+            _, _, space = get_area_region_space(context, 'TEXT_EDITOR', 'WINDOW', 'TEXT_EDITOR')
+            if space is not None:
+                space.text = text_data
         elif msg_type == 'CHAT':
             text = data["text"]
             direction = data["direction"]
@@ -178,7 +188,7 @@ class RequestHandler:
             "Authorization": f"Bearer {api_key}"
         }
         response = requests.post("https://api.openai.com/v1/images/generations",
-                                  headers=headers, data=json.dumps(req_data))
+                                 headers=headers, data=json.dumps(req_data))
         response.raise_for_status()
         response_data = response.json()
 
@@ -205,6 +215,22 @@ class RequestHandler:
         MessageQueue.add_message(message_keys[0], 'IMAGE', {"filepath": filepath}, options)
 
     @classmethod
+    def handle_audio_request(cls, api_key, message_keys, req_data, options):
+        assert len(message_keys) == 1
+
+        # Send audio.
+        headers = {
+            "Authorization": f"Bearer {api_key}"
+        }
+        response = requests.post("https://api.openai.com/v1/audio/transcriptions",
+                                 headers=headers, files=req_data)
+        response.raise_for_status()
+        response_data = response.json()
+
+        # Post message.
+        MessageQueue.add_message(message_keys[0], 'AUDIO', {"text": response_data["text"]}, options)
+
+    @classmethod
     def handle_chat_request(cls, api_key, message_keys, req_data, options):
         assert len(message_keys) == 2
 
@@ -216,7 +242,7 @@ class RequestHandler:
             "Authorization": f"Bearer {api_key}"
         }
         response = requests.post("https://api.openai.com/v1/chat/completions",
-                                    headers=headers, data=json.dumps(req_data))
+                                 headers=headers, data=json.dumps(req_data))
         response.raise_for_status()
         response_data = response.json()
 
@@ -249,6 +275,8 @@ class RequestHandler:
 
                 if req_type == 'IMAGE':
                     cls.handle_image_request(api_key, message_keys, req_data, options)
+                elif req_type == 'AUDIO':
+                    cls.handle_audio_request(api_key, message_keys, req_data, options)
                 elif req_type == 'CHAT':
                     cls.handle_chat_request(api_key, message_keys, req_data, options)
 
