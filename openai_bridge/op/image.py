@@ -1,7 +1,7 @@
 import bpy
 
 from ..utils.threading import (
-    RequestHandler,
+    async_request,
 )
 
 
@@ -60,7 +60,7 @@ class OPENAI_OT_GeneateImage(bpy.types.Operator):
             "remove_file": self.remove_file,
             "image_name": self.image_name,
         }
-        RequestHandler.add_request(api_key, 'IMAGE', request, options)
+        async_request(api_key, 'IMAGE', request, options)
 
         # Run Message Processing Timer if it has not launched yet.
         bpy.ops.system.openai_process_message()

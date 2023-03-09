@@ -4,7 +4,7 @@ import bpy
 from bpy_extras.io_utils import ImportHelper
 
 from ..utils.threading import (
-    RequestHandler,
+    async_request,
 )
 
 
@@ -61,7 +61,7 @@ class OPENAI_OT_TranscriptAudio(bpy.types.Operator, ImportHelper):
         options = {
             "text_name": self.text_name,
         }
-        RequestHandler.add_request(api_key, 'AUDIO', request, options)
+        async_request(api_key, 'AUDIO', request, options)
 
         # Run Message Processing Timer if it has not launched yet.
         bpy.ops.system.openai_process_message()

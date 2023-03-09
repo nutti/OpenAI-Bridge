@@ -1,7 +1,7 @@
 import bpy
 
 from ..utils.threading import (
-    RequestHandler,
+    async_request,
 )
 
 class OPENAI_OT_Chat(bpy.types.Operator):
@@ -42,7 +42,7 @@ class OPENAI_OT_Chat(bpy.types.Operator):
         options = {
             "text_name": self.text_name
         }
-        RequestHandler.add_request(api_key, 'CHAT', request, options)
+        async_request(api_key, 'CHAT', request, options)
 
         # Run Message Processing Timer if it has not launched yet.
         bpy.ops.system.openai_process_message()

@@ -13,6 +13,14 @@ from ..utils.common import (
 )
 
 
+@bpy.app.handlers.persistent
+def error_popup(scene):
+    bpy.ops.system.openai_error('INVOKE_DEFAULT', error_message="HOGEHOGE")
+
+    if error_popup in bpy.app.handlers.depsgraph_update_post:
+        bpy.app.handlers.depsgraph_update_post.remove(error_popup)
+
+
 class OPENAI_OT_ProcessMessage(bpy.types.Operator):
 
     bl_idname = "system.openai_process_message"
@@ -71,6 +79,7 @@ class OPENAI_OT_ProcessMessage(bpy.types.Operator):
                 space.text = text_data
         elif message["type"] == 'ERROR':
             exception = data["exception"]
+            bpy.app.handlers.depsgraph_update_post.append(error_popup)
             bpy.ops.system.openai_error('INVOKE_DEFAULT', error_message=str(exception))
         elif message["type"] == 'END_OF_TRANSACTION':
             return transaction_id
@@ -140,7 +149,6 @@ class RequestHandler:
         OPENAI_OT_ProcessMessage.transaction_ids.add(transaction_id)
         OPENAI_OT_ProcessMessage.transaction_ids_lock.release()
 
-        print(f"{id(cls)} : {cls.request_queue_lock}")
         cls.request_queue_lock.acquire()
         cls.request_queue.append((api_key, transaction_id, type, data, options))
         cls.request_queue_lock.release()
@@ -220,8 +228,6 @@ class RequestHandler:
     def handle_chat_request(cls, api_key, transaction_id, req_data, options):
         MessageQueue.add_message(transaction_id, 'CHAT', {"text": req_data["messages"][0]["content"], "direction": 'TO'}, options)
 
-        print("Send", end="")
-
         # Send prompt.
         headers = {
             "Content-Type": "application/json",
@@ -231,8 +237,6 @@ class RequestHandler:
                                  headers=headers, data=json.dumps(req_data))
         response.raise_for_status()
         response_data = response.json()
-
-        print("OK")
 
         # Get text.
         text_data = response_data["choices"][0]["message"]["content"]
@@ -248,7 +252,6 @@ class RequestHandler:
                 if cls.should_stop:
                     break
 
-                print(f"{id(cls)} : {cls.request_queue_lock}")
                 cls.request_queue_lock.acquire()
                 if len(cls.request_queue) == 0:
                     cls.request_queue_lock.release()
@@ -280,18 +283,26 @@ class OPENAI_OT_Error(bpy.types.Operator):
     bl_idname = "system.openai_error"
     bl_description = "Notify the error"
     bl_label = "Error"
+    bl_options = {'REGISTER', 'INTERNAL', 'UNDO'}
 
     error_message: bpy.props.StringProperty(
-        name="Error Message"
+        name="Error Message",
+        default="Error"
     )
 
     def invoke(self, context, event):
         print(self.error_message)
-        print(f"{event.mouse_region_x} : {event.mouse_region_y}")
 
         wm = context.window_manager
+
+        return wm.invoke_props_popup(self, event)
+
         return wm.invoke_popup(self)
 
     def draw(self, context):
         layout = self.layout
-        layout.label(text=self.error_message)
+        layout.label(text="HOGEHOGE")
+
+
+def async_request(api_key, type, data, options):
+    RequestHandler.add_request(api_key, type, data, options)
