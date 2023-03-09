@@ -2,11 +2,9 @@ import os
 
 import bpy
 from bpy_extras.io_utils import ImportHelper
-import uuid
 
 from ..utils.threading import (
     RequestHandler,
-    OPENAI_OT_ProcessMessage,
 )
 
 
@@ -52,11 +50,6 @@ class OPENAI_OT_TranscriptAudio(bpy.types.Operator, ImportHelper):
         prefs = user_prefs.addons["openai_bridge"].preferences
         api_key = prefs.api_key
 
-        message_key = uuid.uuid4()
-        OPENAI_OT_ProcessMessage.message_keys_lock.acquire()
-        OPENAI_OT_ProcessMessage.message_keys.add(message_key)
-        OPENAI_OT_ProcessMessage.message_keys_lock.release()
-
         request = {
             "file": (os.path.basename(self.properties.filepath), open(self.properties.filepath, "rb")),
             "model": (None, "whisper-1"),
@@ -68,7 +61,7 @@ class OPENAI_OT_TranscriptAudio(bpy.types.Operator, ImportHelper):
         options = {
             "text_name": self.text_name,
         }
-        RequestHandler.add_request(api_key, [message_key], 'AUDIO', request, options)
+        RequestHandler.add_request(api_key, 'AUDIO', request, options)
 
         # Run Message Processing Timer if it has not launched yet.
         bpy.ops.system.openai_process_message()

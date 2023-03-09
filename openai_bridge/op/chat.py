@@ -1,9 +1,7 @@
 import bpy
-import uuid
 
 from ..utils.threading import (
     RequestHandler,
-    OPENAI_OT_ProcessMessage,
 )
 
 class OPENAI_OT_Chat(bpy.types.Operator):
@@ -32,13 +30,6 @@ class OPENAI_OT_Chat(bpy.types.Operator):
         prefs = user_prefs.addons["openai_bridge"].preferences
         api_key = prefs.api_key
 
-        message_key_for_to = uuid.uuid4()
-        message_key_for_from = uuid.uuid4()
-        OPENAI_OT_ProcessMessage.message_keys_lock.acquire()
-        OPENAI_OT_ProcessMessage.message_keys.add(message_key_for_to)
-        OPENAI_OT_ProcessMessage.message_keys.add(message_key_for_from)
-        OPENAI_OT_ProcessMessage.message_keys_lock.release()
-
         request = {
             "model": "gpt-3.5-turbo",
             "messages": [
@@ -51,7 +42,7 @@ class OPENAI_OT_Chat(bpy.types.Operator):
         options = {
             "text_name": self.text_name
         }
-        RequestHandler.add_request(api_key, [message_key_for_to, message_key_for_from], 'CHAT', request, options)
+        RequestHandler.add_request(api_key, 'CHAT', request, options)
 
         # Run Message Processing Timer if it has not launched yet.
         bpy.ops.system.openai_process_message()

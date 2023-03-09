@@ -5,6 +5,7 @@ import requests
 import threading
 import time
 from urllib.parse import urlparse
+import uuid
 
 from ..utils.common import (
     get_area_region_space,
@@ -18,8 +19,8 @@ class OPENAI_OT_ProcessMessage(bpy.types.Operator):
     bl_description = "Process Message"
     bl_label = "Process Message"
 
-    message_keys = set()
-    message_keys_lock = threading.Lock()
+    transaction_ids = set()
+    transaction_ids_lock = threading.Lock()
     _timer = None
 
     def process_message(self, context):
@@ -30,7 +31,7 @@ class OPENAI_OT_ProcessMessage(bpy.types.Operator):
         message = MessageQueue.data.pop(0)
         MessageQueue.lock.release()
 
-        msg_key = message["key"]
+        transaction_id = message["transaction_id"]
         msg_type = message["type"]
         data = message["data"]
         options = message["options"]
@@ -71,12 +72,14 @@ class OPENAI_OT_ProcessMessage(bpy.types.Operator):
         elif message["type"] == 'ERROR':
             exception = data["exception"]
             bpy.ops.system.openai_error('INVOKE_DEFAULT', error_message=str(exception))
+        elif message["type"] == 'END_OF_TRANSACTION':
+            return transaction_id
 
         # Update screen.
         for area in context.screen.areas:
             area.tag_redraw()
 
-        return msg_key
+        return None
 
     def modal(self, context ,event):
         cls = self.__class__
@@ -84,17 +87,17 @@ class OPENAI_OT_ProcessMessage(bpy.types.Operator):
         if event.type == 'TIMER':
             msg_key = self.process_message(context)
             if msg_key is not None:
-                cls.message_keys_lock.acquire()
-                assert msg_key in cls.message_keys
-                cls.message_keys.remove(msg_key)
-                if len(cls.message_keys) == 0:
+                cls.transaction_ids_lock.acquire()
+                assert msg_key in cls.transaction_ids
+                cls.transaction_ids.remove(msg_key)
+                if len(cls.transaction_ids) == 0:
                     wm = context.window_manager
                     wm.event_timer_remove(cls._timer)
                     cls._timer = None
-                    cls.message_keys_lock.release()
+                    cls.transaction_ids_lock.release()
                     print("Terminated Message Processing Timer")
                     return {'FINISHED'}
-                cls.message_keys_lock.release()
+                cls.transaction_ids_lock.release()
 
         return {'PASS_THROUGH'}
 
@@ -112,35 +115,14 @@ class OPENAI_OT_ProcessMessage(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
-class OPENAI_OT_Error(bpy.types.Operator):
-
-    bl_idname = "system.openai_error"
-    bl_description = "Notify the error"
-    bl_label = "Error"
-
-    error_message: bpy.props.StringProperty(
-        name="Error Message"
-    )
-
-    def invoke(self, context, event):
-        print(self.error_message)
-
-        wm = context.window_manager
-        return wm.invoke_popup(self)
-
-    def draw(self, context):
-        layout = self.layout
-        layout.label(text=self.error_message)
-
-
 class MessageQueue:
     lock = threading.Lock()
     data = []
 
     @classmethod
-    def add_message(cls, key, type, data, options):
+    def add_message(cls, transaction_id, type, data, options):
         cls.lock.acquire()
-        cls.data.append({"key": key, "type": type, "data": data, "options": options})
+        cls.data.append({"transaction_id": transaction_id, "type": type, "data": data, "options": options})
         cls.lock.release()
 
 
@@ -150,11 +132,18 @@ class RequestHandler:
     request_queue_lock = None
     send_loop_thread = None
     should_stop = True
-    on_terminated = None
 
     @classmethod
-    def add_request(cls, api_key, message_key, type, data, options):
-        cls.request_queue.append((api_key, message_key, type, data, options))
+    def add_request(cls, api_key, type, data, options):
+        transaction_id = uuid.uuid4()
+        OPENAI_OT_ProcessMessage.transaction_ids_lock.acquire()
+        OPENAI_OT_ProcessMessage.transaction_ids.add(transaction_id)
+        OPENAI_OT_ProcessMessage.transaction_ids_lock.release()
+
+        print(f"{id(cls)} : {cls.request_queue_lock}")
+        cls.request_queue_lock.acquire()
+        cls.request_queue.append((api_key, transaction_id, type, data, options))
+        cls.request_queue_lock.release()
 
     @classmethod
     def start(cls):
@@ -172,16 +161,13 @@ class RequestHandler:
             time.sleep(1)
             continue
         print()
-        cls.on_terminated = None
         cls.request_queue_lock = None
         cls.request_queue = []
         cls.send_loop_thread = None
         print("RequestHandler is stopped.")
 
     @classmethod
-    def handle_image_request(cls, api_key, message_keys, req_data, options):
-        assert len(message_keys) == 1
-
+    def handle_image_request(cls, api_key, transaction_id, req_data, options):
         # Send prompt.
         headers = {
             "Content-Type": "application/json",
@@ -212,12 +198,11 @@ class RequestHandler:
         with open(filepath, "wb") as f:
             f.write(image_data)
 
-        MessageQueue.add_message(message_keys[0], 'IMAGE', {"filepath": filepath}, options)
+        MessageQueue.add_message(transaction_id, 'IMAGE', {"filepath": filepath}, options)
+        MessageQueue.add_message(transaction_id, 'END_OF_TRANSACTION', None, None)
 
     @classmethod
-    def handle_audio_request(cls, api_key, message_keys, req_data, options):
-        assert len(message_keys) == 1
-
+    def handle_audio_request(cls, api_key, transaction_id, req_data, options):
         # Send audio.
         headers = {
             "Authorization": f"Bearer {api_key}"
@@ -228,13 +213,14 @@ class RequestHandler:
         response_data = response.json()
 
         # Post message.
-        MessageQueue.add_message(message_keys[0], 'AUDIO', {"text": response_data["text"]}, options)
+        MessageQueue.add_message(transaction_id, 'AUDIO', {"text": response_data["text"]}, options)
+        MessageQueue.add_message(transaction_id, 'END_OF_TRANSACTION', None, None)
 
     @classmethod
-    def handle_chat_request(cls, api_key, message_keys, req_data, options):
-        assert len(message_keys) == 2
+    def handle_chat_request(cls, api_key, transaction_id, req_data, options):
+        MessageQueue.add_message(transaction_id, 'CHAT', {"text": req_data["messages"][0]["content"], "direction": 'TO'}, options)
 
-        MessageQueue.add_message(message_keys[0], 'CHAT', {"text": req_data["messages"][0]["content"], "direction": 'TO'}, options)
+        print("Send", end="")
 
         # Send prompt.
         headers = {
@@ -246,11 +232,14 @@ class RequestHandler:
         response.raise_for_status()
         response_data = response.json()
 
+        print("OK")
+
         # Get text.
         text_data = response_data["choices"][0]["message"]["content"]
 
         # Post to message queue.
-        MessageQueue.add_message(message_keys[1], 'CHAT', {"text": text_data, "direction": 'FROM'}, options)
+        MessageQueue.add_message(transaction_id, 'CHAT', {"text": text_data, "direction": 'FROM'}, options)
+        MessageQueue.add_message(transaction_id, 'END_OF_TRANSACTION', None, None)
 
     @classmethod
     def send_loop(cls):
@@ -259,6 +248,7 @@ class RequestHandler:
                 if cls.should_stop:
                     break
 
+                print(f"{id(cls)} : {cls.request_queue_lock}")
                 cls.request_queue_lock.acquire()
                 if len(cls.request_queue) == 0:
                     cls.request_queue_lock.release()
@@ -268,22 +258,21 @@ class RequestHandler:
                 cls.request_queue_lock.release()
 
                 api_key = request[0]
-                message_keys = request[1]
+                transaction_id = request[1]
                 req_type = request[2]
                 req_data = request[3]
                 options = request[4]
 
                 if req_type == 'IMAGE':
-                    cls.handle_image_request(api_key, message_keys, req_data, options)
+                    cls.handle_image_request(api_key, transaction_id, req_data, options)
                 elif req_type == 'AUDIO':
-                    cls.handle_audio_request(api_key, message_keys, req_data, options)
+                    cls.handle_audio_request(api_key, transaction_id, req_data, options)
                 elif req_type == 'CHAT':
-                    cls.handle_chat_request(api_key, message_keys, req_data, options)
+                    cls.handle_chat_request(api_key, transaction_id, req_data, options)
 
             except Exception as e:
-                for key in message_keys:
-                    MessageQueue.add_message(key, 'ERROR', {"exception": e}, None)
-
+                MessageQueue.add_message(transaction_id, 'ERROR', {"exception": e}, None)
+                MessageQueue.add_message(transaction_id, 'END_OF_TRANSACTION', None, None)
 
 
 class OPENAI_OT_Error(bpy.types.Operator):
@@ -298,6 +287,7 @@ class OPENAI_OT_Error(bpy.types.Operator):
 
     def invoke(self, context, event):
         print(self.error_message)
+        print(f"{event.mouse_region_x} : {event.mouse_region_y}")
 
         wm = context.window_manager
         return wm.invoke_popup(self)
