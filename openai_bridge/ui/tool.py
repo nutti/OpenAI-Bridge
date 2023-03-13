@@ -47,9 +47,17 @@ class OPENAI_WST_OpenAIAudioTool(bpy.types.WorkSpaceTool):
     )
 
     def draw_settings(context, layout, tool):
+        sc = context.scene
         props = tool.operator_properties(OPENAI_OT_TranscriptAudio.bl_idname)
-        layout.prop(props, "text_name")
-        layout.prop(props, "prompt")
+
+        layout.prop(props, "display_target")
+        if props.display_target == 'TEXT_EDITOR':
+            layout.prop(sc, "openai_audio_target_text", text="Text")
+        elif props.display_target == 'TEXT_OBJECT':
+            layout.prop(sc, "openai_audio_target_text_object", text="Object")
+
+        layout.separator()
+
         layout.prop(props, "temperature")
         layout.prop(props, "language")
 
@@ -74,3 +82,4 @@ class OPENAI_WST_OpenAIChatTool(bpy.types.WorkSpaceTool):
     def draw_settings(context, layout, tool):
         props = tool.operator_properties(OPENAI_OT_Chat.bl_idname)
         layout.prop(props, "text_name")
+        layout.prop(props, "topic")

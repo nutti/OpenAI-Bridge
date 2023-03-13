@@ -1,6 +1,8 @@
 import os
 
 DATA_DIR = f"{os.path.dirname(__file__)}/../_data"
+IMAGE_DATA_DIR = f"{DATA_DIR}/image"
+CHAT_DATA_DIR = f"{DATA_DIR}/chat"
 ICON_DIR = f"{os.path.dirname(__file__)}/../icon"
 
 

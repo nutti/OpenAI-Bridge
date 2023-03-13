@@ -9,16 +9,9 @@ import uuid
 
 from ..utils.common import (
     get_area_region_space,
-    DATA_DIR,
+    IMAGE_DATA_DIR,
+    CHAT_DATA_DIR,
 )
-
-
-@bpy.app.handlers.persistent
-def error_popup(scene):
-    bpy.ops.system.openai_error('INVOKE_DEFAULT', error_message="HOGEHOGE")
-
-    if error_popup in bpy.app.handlers.depsgraph_update_post:
-        bpy.app.handlers.depsgraph_update_post.remove(error_popup)
 
 
 class OPENAI_OT_ProcessMessage(bpy.types.Operator):
@@ -55,14 +48,18 @@ class OPENAI_OT_ProcessMessage(bpy.types.Operator):
                 os.remove(filepath)
         elif msg_type == 'AUDIO':
             text = data["text"]
-            if options["text_name"] not in bpy.data.texts:
-                bpy.data.texts.new(options["text_name"])
-            text_data = bpy.data.texts[options["text_name"]]
-            text_data.write(text)
-            # Focus on the text in Text Editor.
-            _, _, space = get_area_region_space(context, 'TEXT_EDITOR', 'WINDOW', 'TEXT_EDITOR')
-            if space is not None:
-                space.text = text_data
+            if options["display_target"] == 'TEXT_EDITOR':
+                if options["target_text_name"] not in bpy.data.texts:
+                    bpy.data.texts.new(options["target_text_name"])
+                text_data = bpy.data.texts[options["target_text_name"]]
+                text_data.write(text)
+                # Focus on the text in Text Editor.
+                _, _, space = get_area_region_space(context, 'TEXT_EDITOR', 'WINDOW', 'TEXT_EDITOR')
+                if space is not None:
+                    space.text = text_data
+            elif options["display_target"] == 'TEXT_OBJECT':
+                object_data = bpy.data.objects[options["target_text_object_name"]]
+                object_data.data.body = text
         elif msg_type == 'CHAT':
             text = data["text"]
             direction = data["direction"]
@@ -79,8 +76,7 @@ class OPENAI_OT_ProcessMessage(bpy.types.Operator):
                 space.text = text_data
         elif message["type"] == 'ERROR':
             exception = data["exception"]
-            bpy.app.handlers.depsgraph_update_post.append(error_popup)
-            bpy.ops.system.openai_error('INVOKE_DEFAULT', error_message=str(exception))
+            self.report({'WARNING'}, f"Error: {exception}")
         elif message["type"] == 'END_OF_TRANSACTION':
             return transaction_id
 
@@ -187,26 +183,28 @@ class RequestHandler:
         response_data = response.json()
 
         # Download image.
-        download_url = response_data["data"][0]["url"]
-        response = requests.get(download_url)
-        response.raise_for_status()
-        content_type = response.headers["content-type"]
-        if "image" not in content_type:
-            raise RuntimeError(f"Invalid content-type '{content_type}'")
-        image_data = response.content
+        for data in response_data["data"]:
+            download_url = data["url"]
+            response = requests.get(download_url)
+            response.raise_for_status()
+            content_type = response.headers["content-type"]
+            if "image" not in content_type:
+                raise RuntimeError(f"Invalid content-type '{content_type}'")
+            image_data = response.content
 
-        # Save image
-        dirname = DATA_DIR
-        os.makedirs(dirname, exist_ok=True)
-        if options["image_name"] == "":
-            filename = urlparse(download_url).path.split("/")[-1]
-        else:
-            filename = options["image_name"]
-        filepath = f"{dirname}/{filename}"
-        with open(filepath, "wb") as f:
-            f.write(image_data)
+            # Save image
+            dirname = IMAGE_DATA_DIR
+            os.makedirs(dirname, exist_ok=True)
+            if options["image_name"] == "":
+                filename = urlparse(download_url).path.split("/")[-1]
+            else:
+                filename = options["image_name"]
+            filepath = f"{dirname}/{filename}"
+            with open(filepath, "wb") as f:
+                f.write(image_data)
 
-        MessageQueue.add_message(transaction_id, 'IMAGE', {"filepath": filepath}, options)
+            MessageQueue.add_message(transaction_id, 'IMAGE', {"filepath": filepath}, options)
+
         MessageQueue.add_message(transaction_id, 'END_OF_TRANSACTION', None, None)
 
     @classmethod
@@ -226,7 +224,8 @@ class RequestHandler:
 
     @classmethod
     def handle_chat_request(cls, api_key, transaction_id, req_data, options):
-        MessageQueue.add_message(transaction_id, 'CHAT', {"text": req_data["messages"][0]["content"], "direction": 'TO'}, options)
+        send_text = req_data["messages"][0]["content"]
+        MessageQueue.add_message(transaction_id, 'CHAT', {"text": send_text, "direction": 'TO'}, options)
 
         # Send prompt.
         headers = {
@@ -239,10 +238,19 @@ class RequestHandler:
         response_data = response.json()
 
         # Get text.
-        text_data = response_data["choices"][0]["message"]["content"]
+        response_text = response_data["choices"][0]["message"]["content"]
+
+        # Save text.
+        dirname = CHAT_DATA_DIR
+        os.makedirs(dirname, exist_ok=True)
+        topic = options["topic"]
+        filepath = f"{dirname}/{topic}.txt"
+        with open(filepath, "w") as f:
+            f.write(send_text)
+            f.write(response_text)
 
         # Post to message queue.
-        MessageQueue.add_message(transaction_id, 'CHAT', {"text": text_data, "direction": 'FROM'}, options)
+        MessageQueue.add_message(transaction_id, 'CHAT', {"text": response_text, "direction": 'FROM'}, options)
         MessageQueue.add_message(transaction_id, 'END_OF_TRANSACTION', None, None)
 
     @classmethod
@@ -276,32 +284,6 @@ class RequestHandler:
             except Exception as e:
                 MessageQueue.add_message(transaction_id, 'ERROR', {"exception": e}, None)
                 MessageQueue.add_message(transaction_id, 'END_OF_TRANSACTION', None, None)
-
-
-class OPENAI_OT_Error(bpy.types.Operator):
-
-    bl_idname = "system.openai_error"
-    bl_description = "Notify the error"
-    bl_label = "Error"
-    bl_options = {'REGISTER', 'INTERNAL', 'UNDO'}
-
-    error_message: bpy.props.StringProperty(
-        name="Error Message",
-        default="Error"
-    )
-
-    def invoke(self, context, event):
-        print(self.error_message)
-
-        wm = context.window_manager
-
-        return wm.invoke_props_popup(self, event)
-
-        return wm.invoke_popup(self)
-
-    def draw(self, context):
-        layout = self.layout
-        layout.label(text="HOGEHOGE")
 
 
 def async_request(api_key, type, data, options):

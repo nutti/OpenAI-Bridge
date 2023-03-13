@@ -33,10 +33,32 @@ class OPENAI_OT_TranscriptAudio(bpy.types.Operator, ImportHelper):
         ],
         default='en',
     )
-    text_name: bpy.props.StringProperty(
-        name="Text Name",
-        description="Name of the text data block in which the chat log is stored"
+    display_target: bpy.props.EnumProperty(
+        name="Display Target",
+        items=[
+            ('TEXT_OBJECT', "Text Object", "Text Object"),
+            ('TEXT_EDITOR', "Text Editor", "Text Editor"),
+        ],
     )
+
+    def draw(self, context):
+        layout = self.layout
+        sc = context.scene
+
+        layout.prop(self, "prompt")
+
+        layout.separator()
+
+        layout.prop(self, "display_target")
+        if self.display_target == 'TEXT_EDITOR':
+            layout.prop(sc, "openai_audio_target_text", text="Text")
+        elif self.display_target == 'TEXT_OBJECT':
+            layout.prop(sc, "openai_audio_target_text_object", text="Object")
+
+        layout.separator()
+
+        layout.prop(self, "temperature")
+        layout.prop(self, "language")
 
     def invoke(self, context, event):
         wm = context.window_manager
@@ -46,6 +68,7 @@ class OPENAI_OT_TranscriptAudio(bpy.types.Operator, ImportHelper):
         return {'RUNNING_MODAL'}
 
     def execute(self, context):
+        sc = context.scene
         user_prefs = context.preferences
         prefs = user_prefs.addons["openai_bridge"].preferences
         api_key = prefs.api_key
@@ -59,8 +82,11 @@ class OPENAI_OT_TranscriptAudio(bpy.types.Operator, ImportHelper):
             "language": (None, self.language),
         }
         options = {
-            "text_name": self.text_name,
+            "display_target": self.display_target,
+            "target_text_name": sc.openai_audio_target_text.name if sc.openai_audio_target_text else None,
+            "target_text_object_name": sc.openai_audio_target_text_object.name if sc.openai_audio_target_text_object else None,
         }
+
         async_request(api_key, 'AUDIO', request, options)
 
         # Run Message Processing Timer if it has not launched yet.
