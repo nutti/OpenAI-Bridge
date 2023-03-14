@@ -8,18 +8,31 @@ from ..utils.threading import (
 )
 
 
+class OPENAI_ConditionPropertyCollection(bpy.types.PropertyGroup):
+    condition: bpy.props.StringProperty(
+        name="Condition",
+    )
+
+
 class OPENAI_OT_Chat(bpy.types.Operator):
 
     bl_idname = "system.openai_chat"
     bl_description = "Chat via OpenAI API"
     bl_label = "Chat"
-    bl_options = {'REGISTER', 'UNDO'}
+    bl_options = {'REGISTER'}
 
-    user_prompt: bpy.props.StringProperty(
-        name="User Prompt",
+    prompt: bpy.props.StringProperty(
+        name="Prompt",
     )
-    system_prompt: bpy.props.StringProperty(
-        name="System Prompt",
+    num_conditions: bpy.props.IntProperty(
+        name="Number of Conditions",
+        default=1,
+        min=0,
+        max=10,
+    )
+    conditions: bpy.props.CollectionProperty(
+        name="Conditions",
+        type=OPENAI_ConditionPropertyCollection,
     )
     include_old_prompts: bpy.props.BoolProperty(
         name="Include Old Prompt",
@@ -35,22 +48,52 @@ class OPENAI_OT_Chat(bpy.types.Operator):
         items = []
         topic_files = glob.glob(f"{chat_dir}/**/*.txt", recursive=True)
         for file in topic_files:
-            items.append((file, file, file))
+            topic_name = os.path.splitext(os.path.basename(file))[0]
+            items.append((topic_name, topic_name, file))
         return items
+
+    new_topic: bpy.props.BoolProperty(
+        name="New Topic",
+        default=True,
+    )
+
+    new_topic_name: bpy.props.StringProperty(
+        name="New Topic Name",
+        default="Blender Chat"
+    )
 
     topic: bpy.props.EnumProperty(
         name="Topic",
         items=get_topics,
     )
 
-    text_name: bpy.props.StringProperty(
-        name="Text Name",
-        description="Name of the text data block in which the chat log is stored",
-        default="Chat Result",
-    )
+    def draw(self, context):
+        layout = self.layout
+
+        layout.prop(self, "new_topic")
+        if self.new_topic:
+            layout.prop(self, "new_topic_name")
+        else:
+            layout.prop(self, "topic")
+
+        layout.prop(self, "prompt")
+        layout.label(text="Conditions:")
+        for i, condition in enumerate(self.conditions):
+            row = layout.row()
+            sp = row.split(factor=0.03)
+            sp.label(text="")
+            sp = sp.split(factor=1.0)
+            sp.prop(condition, "condition", text=f"{i+1}")
+        layout.prop(self, "include_old_prompts")
 
     def invoke(self, context, event):
         wm = context.window_manager
+
+        self.conditions.clear()
+
+        for i in range(self.num_conditions):
+            self.conditions.add()
+
         return wm.invoke_props_dialog(self)
 
     def execute(self, context):
@@ -63,13 +106,24 @@ class OPENAI_OT_Chat(bpy.types.Operator):
             "messages": [
                 {
                     "role": "user",
-                    "content": self.user_prompt
+                    "content": self.prompt
                 },
             ]
         }
-        options = {
-            "text_name": self.text_name
-        }
+        for condition in self.conditions:
+            if condition.condition != "":
+                request["messages"].append(
+                    {
+                        "role": "system",
+                        "content": condition.condition
+                    }
+                )
+
+        options = {}
+        if self.new_topic:
+            options["topic"] = self.new_topic_name
+        else:
+            options["topic"] = self.topic
 
         async_request(api_key, 'CHAT', request, options)
 

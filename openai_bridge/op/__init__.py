@@ -13,6 +13,7 @@ import bpy
 
 classes = [
     audio.OPENAI_OT_TranscriptAudio,
+    chat.OPENAI_ConditionPropertyCollection,
     chat.OPENAI_OT_Chat,
     image.OPENAI_OT_GeneateImage,
 ]

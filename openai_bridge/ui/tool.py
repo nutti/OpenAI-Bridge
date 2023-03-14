@@ -81,5 +81,9 @@ class OPENAI_WST_OpenAIChatTool(bpy.types.WorkSpaceTool):
 
     def draw_settings(context, layout, tool):
         props = tool.operator_properties(OPENAI_OT_Chat.bl_idname)
-        layout.prop(props, "text_name")
-        layout.prop(props, "topic")
+        layout.prop(props, "new_topic")
+        if props.new_topic:
+            layout.prop(props, "new_topic_name")
+        else:
+            layout.prop(props, "topic")
+        layout.prop(props, "num_conditions")

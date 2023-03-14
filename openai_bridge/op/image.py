@@ -10,7 +10,7 @@ class OPENAI_OT_GeneateImage(bpy.types.Operator):
     bl_idname = "system.openai_generate_image"
     bl_description = "Generate image via OpenAI API"
     bl_label = "Generate Image"
-    bl_options = {'REGISTER', 'UNDO'}
+    bl_options = {'REGISTER'}
 
     prompt: bpy.props.StringProperty(
         name="Prompt",

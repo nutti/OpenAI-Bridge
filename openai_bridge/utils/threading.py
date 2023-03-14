@@ -61,15 +61,15 @@ class OPENAI_OT_ProcessMessage(bpy.types.Operator):
                 object_data = bpy.data.objects[options["target_text_object_name"]]
                 object_data.data.body = text
         elif msg_type == 'CHAT':
-            text = data["text"]
-            direction = data["direction"]
-            if options["text_name"] not in bpy.data.texts:
-                bpy.data.texts.new(options["text_name"])
-            text_data = bpy.data.texts[options["text_name"]]
-            text_data.write(f"{direction} > ")
-            lines = text.split("\n")
+            filepath = data["filepath"]
+            if options["topic"] not in bpy.data.texts:
+                bpy.data.texts.new(options["topic"])
+            text_data = bpy.data.texts[options["topic"]]
+            text_data.clear()
+            with open(filepath, "r", encoding="utf-8") as f:
+                lines = f.readlines()
             for l in lines:
-                text_data.write(f"{l}\n")
+                text_data.write(f"{l}")
             # Focus on the chat in Text Editor.
             _, _, space = get_area_region_space(context, 'TEXT_EDITOR', 'WINDOW', 'TEXT_EDITOR')
             if space is not None:
@@ -225,7 +225,20 @@ class RequestHandler:
     @classmethod
     def handle_chat_request(cls, api_key, transaction_id, req_data, options):
         send_text = req_data["messages"][0]["content"]
-        MessageQueue.add_message(transaction_id, 'CHAT', {"text": send_text, "direction": 'TO'}, options)
+
+        # Save send text.
+        dirname = f"{CHAT_DATA_DIR}/topics"
+        os.makedirs(dirname, exist_ok=True)
+        topic = options["topic"]
+        filepath = f"{dirname}/{topic}.txt"
+        lines = []
+        lines.append("You >\n\n")
+        lines.append(f"{send_text}\n")
+        lines.append("\n")
+        with open(filepath, "w") as f:
+            f.writelines(lines)
+
+        MessageQueue.add_message(transaction_id, 'CHAT', {"filepath": filepath}, options)
 
         # Send prompt.
         headers = {
@@ -240,17 +253,17 @@ class RequestHandler:
         # Get text.
         response_text = response_data["choices"][0]["message"]["content"]
 
-        # Save text.
-        dirname = CHAT_DATA_DIR
-        os.makedirs(dirname, exist_ok=True)
-        topic = options["topic"]
-        filepath = f"{dirname}/{topic}.txt"
-        with open(filepath, "w") as f:
-            f.write(send_text)
-            f.write(response_text)
+        # Save response text.
+        lines = []
+        lines.append("GPT >\n\n")
+        for l in response_text.split("\n"):
+            lines.append(f"{l}\n")
+        lines.append("\n")
+        with open(filepath, "a") as f:
+            f.writelines(lines)
 
         # Post to message queue.
-        MessageQueue.add_message(transaction_id, 'CHAT', {"text": response_text, "direction": 'FROM'}, options)
+        MessageQueue.add_message(transaction_id, 'CHAT', {"filepath": filepath}, options)
         MessageQueue.add_message(transaction_id, 'END_OF_TRANSACTION', None, None)
 
     @classmethod
