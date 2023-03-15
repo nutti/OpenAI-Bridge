@@ -25,6 +25,11 @@ class OPENAI_WST_OpenAIImageTool(bpy.types.WorkSpaceTool):
 
     def draw_settings(context, layout, tool):
         props = tool.operator_properties(OPENAI_OT_GeneateImage.bl_idname)
+
+        layout.prop(props, "sync")
+
+        layout.separator()
+
         layout.prop(props, "num_images")
         layout.prop(props, "image_size")
 
@@ -49,6 +54,10 @@ class OPENAI_WST_OpenAIAudioTool(bpy.types.WorkSpaceTool):
     def draw_settings(context, layout, tool):
         sc = context.scene
         props = tool.operator_properties(OPENAI_OT_TranscriptAudio.bl_idname)
+
+        layout.prop(props, "sync")
+
+        layout.separator()
 
         layout.prop(props, "display_target")
         if props.display_target == 'TEXT_EDITOR':
@@ -81,9 +90,17 @@ class OPENAI_WST_OpenAIChatTool(bpy.types.WorkSpaceTool):
 
     def draw_settings(context, layout, tool):
         props = tool.operator_properties(OPENAI_OT_Chat.bl_idname)
+
+        layout.prop(props, "sync")
+
+        layout.separator()
+
         layout.prop(props, "new_topic")
         if props.new_topic:
             layout.prop(props, "new_topic_name")
         else:
             layout.prop(props, "topic")
+
+        layout.separator()
+
         layout.prop(props, "num_conditions")

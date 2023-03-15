@@ -4,6 +4,7 @@ import bpy
 from bpy_extras.io_utils import ImportHelper
 
 from ..utils.threading import (
+    sync_request,
     async_request,
 )
 
@@ -41,9 +42,19 @@ class OPENAI_OT_TranscriptAudio(bpy.types.Operator, ImportHelper):
         ],
     )
 
+    sync: bpy.props.BoolProperty(
+        name="Sync",
+        description="Synchronous execution if true",
+        default=False,
+    )
+
     def draw(self, context):
         layout = self.layout
         sc = context.scene
+
+        layout.prop(self, "sync")
+
+        layout.separator()
 
         layout.prop(self, "prompt")
 
@@ -87,10 +98,12 @@ class OPENAI_OT_TranscriptAudio(bpy.types.Operator, ImportHelper):
             "target_text_object_name": sc.openai_audio_target_text_object.name if sc.openai_audio_target_text_object else None,
         }
 
-        async_request(api_key, 'AUDIO', request, options)
-
-        # Run Message Processing Timer if it has not launched yet.
-        bpy.ops.system.openai_process_message()
+        if self.sync:
+            sync_request(api_key, 'AUDIO', request, options, context, self)
+        else:
+            async_request(api_key, 'AUDIO', request, options)
+            # Run Message Processing Timer if it has not launched yet.
+            bpy.ops.system.openai_process_message()
 
         print(f"Sent Request: f{request}")
         return {'FINISHED'}

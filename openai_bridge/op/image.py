@@ -1,6 +1,7 @@
 import bpy
 
 from ..utils.threading import (
+    sync_request,
     async_request,
 )
 
@@ -41,6 +42,12 @@ class OPENAI_OT_GeneateImage(bpy.types.Operator):
         default=False,
     )
 
+    sync: bpy.props.BoolProperty(
+        name="Sync",
+        description="Synchronous execution if true",
+        default=False,
+    )
+
     def invoke(self, context, event):
         wm = context.window_manager
         user_prefs = context.preferences
@@ -63,10 +70,13 @@ class OPENAI_OT_GeneateImage(bpy.types.Operator):
             "remove_file": self.remove_file,
             "image_name": self.image_name,
         }
-        async_request(api_key, 'IMAGE', request, options)
 
-        # Run Message Processing Timer if it has not launched yet.
-        bpy.ops.system.openai_process_message()
+        if self.sync:
+            sync_request(api_key, 'IMAGE', request, options, context, self)
+        else:
+            async_request(api_key, 'IMAGE', request, options)
+            # Run Message Processing Timer if it has not launched yet.
+            bpy.ops.system.openai_process_message()
 
         print(f"Sent Request: f{request}")
         return {'FINISHED'}

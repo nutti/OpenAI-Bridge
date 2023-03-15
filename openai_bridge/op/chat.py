@@ -4,6 +4,7 @@ import os
 from ..utils.common import CHAT_DATA_DIR
 
 from ..utils.threading import (
+    sync_request,
     async_request,
 )
 
@@ -62,14 +63,26 @@ class OPENAI_OT_Chat(bpy.types.Operator):
         items=get_topics,
     )
 
+    sync: bpy.props.BoolProperty(
+        name="Sync",
+        description="Synchronous execution if true",
+        default=False,
+    )
+
     def draw(self, context):
         layout = self.layout
+
+        layout.prop(self, "sync")
+
+        layout.separator()
 
         layout.prop(self, "new_topic")
         if self.new_topic:
             layout.prop(self, "new_topic_name")
         else:
             layout.prop(self, "topic")
+
+        layout.separator()
 
         layout.prop(self, "prompt")
         layout.label(text="Conditions:")
@@ -123,10 +136,12 @@ class OPENAI_OT_Chat(bpy.types.Operator):
         else:
             options["topic"] = self.topic
 
-        async_request(api_key, 'CHAT', request, options)
-
-        # Run Message Processing Timer if it has not launched yet.
-        bpy.ops.system.openai_process_message()
+        if self.sync:
+            sync_request(api_key, 'CHAT', request, options, context, self)
+        else:
+            async_request(api_key, 'CHAT', request, options)
+            # Run Message Processing Timer if it has not launched yet.
+            bpy.ops.system.openai_process_message()
 
         print(f"Sent Request: f{request}")
         return {'FINISHED'}
