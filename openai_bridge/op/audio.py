@@ -12,8 +12,8 @@ from ..utils.threading import (
 class OPENAI_OT_TranscriptAudio(bpy.types.Operator, ImportHelper):
 
     bl_idname = "system.openai_transcript_audio"
-    bl_description = "Transcript audio via OpenAI API"
-    bl_label = "Transcript Audio"
+    bl_description = "Transcribe audio via OpenAI API"
+    bl_label = "Transcribe Audio"
     bl_options = {'REGISTER'}
 
     filename_ext = ".mp3,.wav"

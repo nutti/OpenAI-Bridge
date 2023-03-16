@@ -16,8 +16,10 @@ add-on.
 
 The features of this add-on are as follows.
 
-* Generate images
-  * Generate images using the OpenAI 'DALL-E' API.
+* Image
+  * Generate Image: Generate images using the OpenAI 'DALL-E' API.
+* Audio
+  * Transcript Audio: Transcript audio using the OpenAI 'whisper-1' API.
 * Chat
   * Chat using the OpenAI 'gpt-3.5-turbo' API.
 

@@ -6,6 +6,7 @@ class OPENAI_Preferences(bpy.types.AddonPreferences):
 
     api_key: bpy.props.StringProperty(
         name="API Key",
+        subtype='PASSWORD',
     )
 
     popup_menu_width: bpy.props.IntProperty(
@@ -17,5 +18,8 @@ class OPENAI_Preferences(bpy.types.AddonPreferences):
 
     def draw(self, _):
         layout = self.layout
+
         layout.prop(self, "api_key")
-        layout.prop(self, "popup_menu_width")
+
+        sp = layout.split(factor=0.35)
+        sp.prop(self, "popup_menu_width")

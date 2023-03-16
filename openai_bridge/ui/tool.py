@@ -10,7 +10,7 @@ class OPENAI_WST_OpenAIImageTool(bpy.types.WorkSpaceTool):
 
     bl_idname = "openai.openai_image_tool"
     bl_label = "OpenAI Image Tool"
-    bl_description = "Image tools that uses OpenAI API"
+    bl_description = "Image tools"
     bl_space_type = 'VIEW_3D'
     bl_context_mode = 'OBJECT'
     bl_icon = f"{ICON_DIR}/custom.openai_image"
@@ -18,7 +18,7 @@ class OPENAI_WST_OpenAIImageTool(bpy.types.WorkSpaceTool):
     bl_keymap = (
         (
             OPENAI_OT_GeneateImage.bl_idname,
-            {"type": 'G', "value": 'PRESS'},
+            {"type": 'SPACE', "value": 'PRESS'},
             {},
         ),
     )
@@ -38,7 +38,7 @@ class OPENAI_WST_OpenAIAudioTool(bpy.types.WorkSpaceTool):
 
     bl_idname = "openai.openai_audio_tool"
     bl_label = "OpenAI Audio Tool"
-    bl_description = "Audio tools that uses OpenAI API"
+    bl_description = "Audio tools"
     bl_space_type = 'VIEW_3D'
     bl_context_mode = 'OBJECT'
     bl_icon = f"{ICON_DIR}/custom.openai_audio"
@@ -46,7 +46,7 @@ class OPENAI_WST_OpenAIAudioTool(bpy.types.WorkSpaceTool):
     bl_keymap = (
         (
             OPENAI_OT_TranscriptAudio.bl_idname,
-            {"type": 'T', "value": 'PRESS'},
+            {"type": 'SPACE', "value": 'PRESS'},
             {},
         ),
     )
@@ -75,7 +75,7 @@ class OPENAI_WST_OpenAIChatTool(bpy.types.WorkSpaceTool):
 
     bl_idname = "openai.openai_chat_tool"
     bl_label = "OpenAI Chat Tool"
-    bl_description = "Chat tools that uses OpenAI API"
+    bl_description = "Chat tools"
     bl_space_type = 'VIEW_3D'
     bl_context_mode = 'OBJECT'
     bl_icon = f"{ICON_DIR}/custom.openai_chat"
@@ -83,7 +83,7 @@ class OPENAI_WST_OpenAIChatTool(bpy.types.WorkSpaceTool):
     bl_keymap = (
         (
             OPENAI_OT_Chat.bl_idname,
-            {"type": 'C', "value": 'PRESS'},
+            {"type": 'SPACE', "value": 'PRESS'},
             {},
         ),
     )
