@@ -6,8 +6,9 @@ This is a Blender add-on **OpenAI Bridge** to use the OpenAI API on Blender seam
 
 ## Download / Installation
 
-This project is now in progress for the stable release.
-You can download the
+All released OpenAI-Bridge add-on is available on
+[Release Page](https://github.com/nutti/OpenAI-Bridge/releases).  
+If you want to try newest (unstable) version, you can download it from
 [unstable version](https://github.com/nutti/OpenAI-Bridge/archive/refs/heads/main.zip).
 
 Installation process is a bit confusing.  
