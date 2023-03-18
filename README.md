@@ -2,6 +2,8 @@
 
 This is a Blender add-on **OpenAI Bridge** to use the OpenAI API on Blender seamlessly.
 
+![Thumbnail](docs/images/thumbnail.png)
+
 ## Download / Installation
 
 This project is now in progress for the stable release.

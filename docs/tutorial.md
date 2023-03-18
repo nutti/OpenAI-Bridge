@@ -11,7 +11,7 @@
 
 To use this add-on, you need to enter the OpenAI API key in the add-on preference.
 
-![Preparation](images/preparation.png)
+![Preparation](images/tutorial/preparation.png)
 
 ## Image
 
@@ -23,7 +23,7 @@ By using the image generation tool, you can generate images using the OpenAI 'DA
 
 The image generation tool can be accessed from the Toolbar on 3D Viewport.
 
-![Generate Images 1](images/generate_images_1.png)
+![Generate Images 1](images/tutorial/generate_images_1.png)
 
 #### 2. Set properties
 
@@ -36,7 +36,7 @@ The configurable properties are as follows.
 |Number of Images|How many images to generate.|
 |Image Size|The size of the images to generate.|
 
-![Generate Images 2](images/generate_images_2.png)
+![Generate Images 2](images/tutorial/generate_images_2.png)
 
 #### 3. Enter a prompt
 
@@ -48,14 +48,14 @@ Enter a prompt to generate the images and click the OK button to send the reques
 |Image Name|Name of image data block.|
 |Remove File|If true, remove generated files after the image block is loaded.|
 
-![Generate Images 3](images/generate_images_3.png)
+![Generate Images 3](images/tutorial/generate_images_3.png)
 
 #### 4. Review the generated images
 
 The generated images will be loaded into Blender automatically.
 You can check the generated images in the Image Editor.
 
-![Generate Images 4](images/generate_images_4.png)
+![Generate Images 4](images/tutorial/generate_images_4.png)
 
 If 'Remove File' property is false, you can also check the generated image in the `<addon_folder>/_data/image`.
 
@@ -69,7 +69,7 @@ The audio tool allows you to transcribe the audio file using the OpenAI 'whisper
 
 The audio tool can be accessed from the Toolbar on 3D Viewport.
 
-![Transcribe Audio 1](images/transcribe_audio_1.png)
+![Transcribe Audio 1](images/tutorial/transcribe_audio_1.png)
 
 #### 2. Set properties
 
@@ -85,7 +85,7 @@ The configurable properties are as follows.
 |Temperature|A higher value makes the output more random. A lower value makes the output more deterministic.|
 |Language|The language of the input audio file.|
 
-![Transcribe Audio 2](images/transcribe_audio_2.png)
+![Transcribe Audio 2](images/tutorial/transcribe_audio_2.png)
 
 #### 3. Open an audio file
 
@@ -96,13 +96,13 @@ Select an audio file and click the OK button to send the request to the OpenAI A
 |---|---|
 |Prompt|The optional text.|
 
-![Transcribe Audio 3](images/transcribe_audio_3.png)
+![Transcribe Audio 3](images/tutorial/transcribe_audio_3.png)
 
 #### 4. Review the result
 
 The transcription can be displayed in the Text Editor or Text Object.
 
-![Transcribe Audio 4](images/transcribe_audio_4.png)
+![Transcribe Audio 4](images/tutorial/transcribe_audio_4.png)
 
 ## Chat
 
@@ -112,7 +112,7 @@ The chat tool allows you to chat using the OpenAI 'gpt-3.5-turbo' API.
 
 The chat tool can be accessed from the Toolbar on 3D Viewport.
 
-![Chat 1](images/chat_1.png)
+![Chat 1](images/tutorial/chat_1.png)
 
 #### 2. Set properties
 
@@ -123,7 +123,7 @@ The configurable properties are as follows.
 |---|---|
 |Text Name|Name of the text data block in which the chat log is stored.|
 
-![Chat 2](images/chat_2.png)
+![Chat 2](images/tutorial/chat_2.png)
 
 #### 3. Enter a prompt
 
@@ -131,10 +131,10 @@ When you press the 'C' key in the 3D Viewport, the pop-up dialog will be display
 Enter a prompt and click the OK button to send the request to the OpenAI API.
 You can also change the properties here before sending the request.
 
-![Chat 3](images/chat_3.png)
+![Chat 3](images/tutorial/chat_3.png)
 
 #### 4. Review the chat history
 
 The chat history can be displayed in the Text Editor.
 
-![Chat 4](images/chat_4.png)
+![Chat 4](images/tutorial/chat_4.png)
