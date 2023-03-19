@@ -40,7 +40,7 @@ The configurable properties are as follows.
 
 #### 3. Enter a prompt
 
-When you press the 'G' key in the 3D Viewport, the pop-up dialog will be displayed.
+When you press the 'SPACE' key in the 3D Viewport, the pop-up dialog will be displayed.
 Enter a prompt to generate the images and click the OK button to send the request to the OpenAI API.
 
 |**Properties**||
@@ -89,7 +89,7 @@ The configurable properties are as follows.
 
 #### 3. Open an audio file
 
-When you press the 'T' key in the 3D Viewport, the file browser will be displayed.
+When you press the 'SPACE' key in the 3D Viewport, the file browser will be displayed.
 Select an audio file and click the OK button to send the request to the OpenAI API.
 
 |**Properties**||
@@ -127,7 +127,7 @@ The configurable properties are as follows.
 
 #### 3. Enter a prompt
 
-When you press the 'C' key in the 3D Viewport, the pop-up dialog will be displayed.
+When you press the 'SPACE' key in the 3D Viewport, the pop-up dialog will be displayed.
 Enter a prompt and click the OK button to send the request to the OpenAI API.
 You can also change the properties here before sending the request.
 
