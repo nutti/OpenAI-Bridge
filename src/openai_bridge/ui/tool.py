@@ -3,6 +3,7 @@ import bpy
 from ..op.image import OPENAI_OT_GeneateImage
 from ..op.audio import OPENAI_OT_TranscriptAudio
 from ..op.chat import OPENAI_OT_Chat
+from ..op.code import OPENAI_OT_Code
 from ..utils.common import ICON_DIR
 
 
@@ -32,6 +33,7 @@ class OPENAI_WST_OpenAIImageTool(bpy.types.WorkSpaceTool):
 
         layout.prop(props, "num_images")
         layout.prop(props, "image_size")
+        layout.prop(props, "remove_file")
 
 
 class OPENAI_WST_OpenAIAudioTool(bpy.types.WorkSpaceTool):
@@ -59,15 +61,6 @@ class OPENAI_WST_OpenAIAudioTool(bpy.types.WorkSpaceTool):
 
         layout.separator()
 
-        layout.prop(props, "display_target")
-        if props.display_target == 'TEXT_EDITOR':
-            layout.prop(sc, "openai_audio_target_text", text="Text")
-        elif props.display_target == 'TEXT_OBJECT':
-            layout.prop(sc, "openai_audio_target_text_object", text="Object")
-
-        layout.separator()
-
-        layout.prop(props, "temperature")
         layout.prop(props, "language")
 
 
@@ -90,17 +83,43 @@ class OPENAI_WST_OpenAIChatTool(bpy.types.WorkSpaceTool):
 
     def draw_settings(context, layout, tool):
         props = tool.operator_properties(OPENAI_OT_Chat.bl_idname)
+        user_prefs = context.preferences
+        prefs = user_prefs.addons["openai_bridge"].preferences
 
         layout.prop(props, "sync")
 
         layout.separator()
 
-        layout.prop(props, "new_topic")
-        if props.new_topic:
-            layout.prop(props, "new_topic_name")
-        else:
-            layout.prop(props, "topic")
+        layout.prop(prefs, "chat_tool_model")
+        layout.prop(props, "num_conditions")
+
+
+class OPENAI_WST_OpenAICodeTool(bpy.types.WorkSpaceTool):
+
+    bl_idname = "openai.openai_code_tool"
+    bl_label = "OpenAI Code Tool"
+    bl_description = "Code tools"
+    bl_space_type = 'VIEW_3D'
+    bl_context_mode = 'OBJECT'
+    bl_icon = f"{ICON_DIR}/custom.openai_chat"
+
+    bl_keymap = (
+        (
+            OPENAI_OT_Code.bl_idname,
+            {"type": 'SPACE', "value": 'PRESS'},
+            {},
+        ),
+    )
+
+    def draw_settings(context, layout, tool):
+        props = tool.operator_properties(OPENAI_OT_Code.bl_idname)
+        user_prefs = context.preferences
+        prefs = user_prefs.addons["openai_bridge"].preferences
+
+        layout.prop(props, "sync")
 
         layout.separator()
 
+        layout.prop(prefs, "code_tool_model")
         layout.prop(props, "num_conditions")
+        layout.prop(props, "execute_immediately")

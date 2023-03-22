@@ -72,10 +72,6 @@ class OPENAI_OT_Chat(bpy.types.Operator):
     def draw(self, context):
         layout = self.layout
 
-        layout.prop(self, "sync")
-
-        layout.separator()
-
         layout.prop(self, "new_topic")
         if self.new_topic:
             layout.prop(self, "new_topic_name")
@@ -111,7 +107,7 @@ class OPENAI_OT_Chat(bpy.types.Operator):
         api_key = prefs.api_key
 
         request = {
-            "model": "gpt-3.5-turbo",
+            "model": prefs.chat_tool_model,
             "messages": [
                 {
                     "role": "user",

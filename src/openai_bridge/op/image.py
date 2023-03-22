@@ -48,6 +48,14 @@ class OPENAI_OT_GeneateImage(bpy.types.Operator):
         default=False,
     )
 
+    def draw(self, context):
+        layout = self.layout
+
+        layout.prop(self, "prompt")
+        layout.prop(self, "image_name")
+
+        layout.separator()
+
     def invoke(self, context, event):
         wm = context.window_manager
         user_prefs = context.preferences

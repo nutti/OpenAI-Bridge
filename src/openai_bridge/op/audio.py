@@ -52,10 +52,6 @@ class OPENAI_OT_TranscriptAudio(bpy.types.Operator, ImportHelper):
         layout = self.layout
         sc = context.scene
 
-        layout.prop(self, "sync")
-
-        layout.separator()
-
         layout.prop(self, "prompt")
 
         layout.separator()
@@ -69,7 +65,6 @@ class OPENAI_OT_TranscriptAudio(bpy.types.Operator, ImportHelper):
         layout.separator()
 
         layout.prop(self, "temperature")
-        layout.prop(self, "language")
 
     def invoke(self, context, event):
         wm = context.window_manager
@@ -86,7 +81,7 @@ class OPENAI_OT_TranscriptAudio(bpy.types.Operator, ImportHelper):
 
         request = {
             "file": (os.path.basename(self.properties.filepath), open(self.properties.filepath, "rb")),
-            "model": (None, "whisper-1"),
+            "model": (None, prefs.audio_tool_model),
             "prompt": (None, self.prompt),
             "response_format": (None, "json"),
             "temperature": (None, f"{self.temperature}"),
