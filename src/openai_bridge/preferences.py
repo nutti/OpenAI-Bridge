@@ -16,6 +16,12 @@ class OPENAI_Preferences(bpy.types.AddonPreferences):
         max=1000,
     )
 
+    async_execution: bpy.props.BoolProperty(
+        name="Async Execution",
+        description="Execute operations asynchronously",
+        default=True,
+    )
+
     audio_tool_model: bpy.props.EnumProperty(
         name="Audio Tool Model",
         description="Model to be used for Audio Tool",
@@ -54,6 +60,7 @@ class OPENAI_Preferences(bpy.types.AddonPreferences):
 
         sp = layout.split(factor=0.35)
         sp.prop(self, "popup_menu_width")
+        sp.prop(self, "async_execution")
 
         layout.separator()
 

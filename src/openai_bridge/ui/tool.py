@@ -12,8 +12,8 @@ class OPENAI_WST_OpenAIImageTool(bpy.types.WorkSpaceTool):
     bl_idname = "openai.openai_image_tool"
     bl_label = "OpenAI Image Tool"
     bl_description = "Image tools"
-    bl_space_type = 'VIEW_3D'
-    bl_context_mode = 'OBJECT'
+    bl_space_type = 'IMAGE_EDITOR'
+    bl_context_mode = 'VIEW'
     bl_icon = f"{ICON_DIR}/custom.openai_image"
 
     bl_keymap = (
@@ -25,15 +25,10 @@ class OPENAI_WST_OpenAIImageTool(bpy.types.WorkSpaceTool):
     )
 
     def draw_settings(context, layout, tool):
-        props = tool.operator_properties(OPENAI_OT_GeneateImage.bl_idname)
+        user_prefs = context.preferences
+        prefs = user_prefs.addons["openai_bridge"].preferences
 
-        layout.prop(props, "sync")
-
-        layout.separator()
-
-        layout.prop(props, "num_images")
-        layout.prop(props, "image_size")
-        layout.prop(props, "remove_file")
+        layout.prop(prefs, "async_execution")
 
 
 class OPENAI_WST_OpenAIAudioTool(bpy.types.WorkSpaceTool):

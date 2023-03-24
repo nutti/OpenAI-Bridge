@@ -20,6 +20,8 @@ classes = [
     code.OPENAI_CodeConditionPropertyCollection,
     code.OPENAI_OT_Code,
     image.OPENAI_OT_GeneateImage,
+    image.OPENAI_OT_LoadImage,
+    image.OPENAI_OT_RemoveImage,
 ]
 
 

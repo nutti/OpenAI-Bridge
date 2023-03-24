@@ -61,8 +61,6 @@ class OPENAI_OT_ProcessMessage(bpy.types.Operator):
             _, _, space = get_area_region_space(context, 'IMAGE_EDITOR', 'WINDOW', 'IMAGE_EDITOR')
             if space is not None:
                 space.image = new_image
-            if options["remove_file"]:
-                os.remove(filepath)
         elif msg_type == 'AUDIO':
             text = data["text"]
             if options["display_target"] == 'TEXT_EDITOR':
