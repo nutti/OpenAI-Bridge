@@ -1,7 +1,7 @@
 import bpy
 
 from ..op.image import OPENAI_OT_GeneateImage
-from ..op.audio import OPENAI_OT_TranscriptAudio
+from ..op.audio import OPENAI_OT_TranscribeAudio
 from ..op.chat import OPENAI_OT_Chat
 from ..op.code import OPENAI_OT_Code
 from ..utils.common import ICON_DIR
@@ -36,27 +36,23 @@ class OPENAI_WST_OpenAIAudioTool(bpy.types.WorkSpaceTool):
     bl_idname = "openai.openai_audio_tool"
     bl_label = "OpenAI Audio Tool"
     bl_description = "Audio tools"
-    bl_space_type = 'VIEW_3D'
-    bl_context_mode = 'OBJECT'
+    bl_space_type = 'SEQUENCE_EDITOR'
+    bl_context_mode = 'SEQUENCER'
     bl_icon = f"{ICON_DIR}/custom.openai_audio"
 
     bl_keymap = (
         (
-            OPENAI_OT_TranscriptAudio.bl_idname,
+            OPENAI_OT_TranscribeAudio.bl_idname,
             {"type": 'SPACE', "value": 'PRESS'},
             {},
         ),
     )
 
     def draw_settings(context, layout, tool):
-        sc = context.scene
-        props = tool.operator_properties(OPENAI_OT_TranscriptAudio.bl_idname)
+        user_prefs = context.preferences
+        prefs = user_prefs.addons["openai_bridge"].preferences
 
-        layout.prop(props, "sync")
-
-        layout.separator()
-
-        layout.prop(props, "language")
+        layout.prop(prefs, "async_execution")
 
 
 class OPENAI_WST_OpenAIChatTool(bpy.types.WorkSpaceTool):

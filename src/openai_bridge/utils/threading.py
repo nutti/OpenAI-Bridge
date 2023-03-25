@@ -48,7 +48,7 @@ class OPENAI_OT_ProcessMessage(bpy.types.Operator):
         cls.process_message_internal(context, operator_instance, message)
 
     @classmethod
-    def process_message_internal(cls, context, operator_instance, message):
+    def process_message_internal(cls, context: bpy.types.Context, operator_instance, message):
         transaction_id = message["transaction_id"]
         msg_type = message["type"]
         data = message["data"]
@@ -63,7 +63,7 @@ class OPENAI_OT_ProcessMessage(bpy.types.Operator):
                 space.image = new_image
         elif msg_type == 'AUDIO':
             text = data["text"]
-            if options["display_target"] == 'TEXT_EDITOR':
+            if options["target"] == 'TEXT_EDITOR':
                 if options["target_text_name"] not in bpy.data.texts:
                     bpy.data.texts.new(options["target_text_name"])
                 text_data = bpy.data.texts[options["target_text_name"]]
@@ -72,9 +72,15 @@ class OPENAI_OT_ProcessMessage(bpy.types.Operator):
                 _, _, space = get_area_region_space(context, 'TEXT_EDITOR', 'WINDOW', 'TEXT_EDITOR')
                 if space is not None:
                     space.text = text_data
-            elif options["display_target"] == 'TEXT_OBJECT':
-                object_data = bpy.data.objects[options["target_text_object_name"]]
-                object_data.data.body = text
+            elif options["target"] == 'TEXT_STRIP':
+                seq_data = context.scene.sequence_editor.sequences.new_effect(
+                    name="Transcript", type='TEXT', channel=options["target_sequence_channel"],
+                    frame_start=options["strip_start"], frame_end=options["strip_end"])
+                seq_data.text = text
+                # Focus on the sequence in Sequencer.
+                for s in context.scene.sequence_editor.sequences:
+                    s.select = False
+                seq_data.select = True
         elif msg_type == 'CHAT':
             filepath = data["filepath"]
             if options["topic"] not in bpy.data.texts:
