@@ -77,11 +77,10 @@ class OPENAI_WST_OpenAIChatTool(bpy.types.WorkSpaceTool):
         user_prefs = context.preferences
         prefs = user_prefs.addons["openai_bridge"].preferences
 
-        layout.prop(props, "sync")
+        layout.prop(prefs, "async_execution")
 
         layout.separator()
 
-        layout.prop(prefs, "chat_tool_model")
         layout.prop(props, "num_conditions")
 
 

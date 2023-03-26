@@ -6,13 +6,13 @@ import threading
 import time
 from urllib.parse import urlparse
 import uuid
-import re
 
 from ..utils.common import (
     get_area_region_space,
     IMAGE_DATA_DIR,
     CHAT_DATA_DIR,
     CODE_DATA_DIR,
+    ChatTextFile,
 )
 
 
@@ -82,19 +82,8 @@ class OPENAI_OT_ProcessMessage(bpy.types.Operator):
                     s.select = False
                 seq_data.select = True
         elif msg_type == 'CHAT':
-            filepath = data["filepath"]
-            if options["topic"] not in bpy.data.texts:
-                bpy.data.texts.new(options["topic"])
-            text_data = bpy.data.texts[options["topic"]]
-            text_data.clear()
-            with open(filepath, "r", encoding="utf-8") as f:
-                lines = f.readlines()
-            for l in lines:
-                text_data.write(f"{l}")
-            # Focus on the chat in Text Editor.
-            _, _, space = get_area_region_space(context, 'TEXT_EDITOR', 'WINDOW', 'TEXT_EDITOR')
-            if space is not None:
-                space.text = text_data
+            # Focus on the topic.
+            context.scene.openai_chat_tool_props.topic = options["topic"]
         elif msg_type == 'CODE':
             filepath = data["filepath"]
             with open(filepath, "r", encoding="utf-8") as f:
@@ -286,104 +275,47 @@ class RequestHandler:
         OPENAI_OT_ProcessMessage.exec(transaction_id, 'END_OF_TRANSACTION', None, None, sync=sync, context=context, operator_instance=operator_instance)
 
     @classmethod
-    def get_user_text_data(cls, user_text):
-        return [f"> {user_text}"]
-
-    @classmethod
-    def get_condition_text_data(cls, condition_texts):
-        lines = []
-        for i, text in enumerate(condition_texts):
-            lines.append(f"[Condition {i+1}] {text}")
-        return lines
-
-    @classmethod
-    def get_old_text_data(cls, filepath):
-        if not os.path.isfile(filepath):
-            return []
-
-        # Parse all old text data.
-        with open(filepath, "r", encoding="utf-8") as f:
-            text = f.read()
-
-        text_data = []
-        sections = text.split("====================\n")
-        for section in sections:
-            user_data = []
-            condition_data = []
-            response_data = []
-
-            state = 'USER'
-            for line in section.split("\n"):
-                if state == 'USER':
-                    if line == "---":
-                        state = 'CONDITION'
-                    elif line.startswith("> "):
-                        user_data.append(line[2:])
-                elif state == 'CONDITION':
-                    if line == "--------------------":
-                        state = 'RESPONSE'
-                    else:
-                        m = re.search(r"^\[Condition [0-9]+\] (.*)", line)
-                        if m:
-                            condition_data.append(m.group(1))
-                elif state == 'RESPONSE':
-                    response_data.append(line)
-
-            if state == 'RESPONSE':
-                text_data.append({
-                    "user_data": "\n".join(user_data),
-                    "condition_data": condition_data,
-                    "response_data": "\n".join(response_data),
-                })
-
-        return text_data
-
-    @classmethod
     def handle_chat_request(cls, api_key, transaction_id, req_data, options, sync, context=None, operator_instance=None):
         user_text = req_data["messages"][0]["content"]
         condition_texts = []
         for text in req_data["messages"][1:]:
             condition_texts.append(text["content"])
-        user_text_data = cls.get_user_text_data(user_text)
-        condition_text_data = cls.get_condition_text_data(condition_texts)
 
         # Save send text.
         dirname = f"{CHAT_DATA_DIR}/topics"
         os.makedirs(dirname, exist_ok=True)
         topic = options["topic"]
-        filepath = f"{dirname}/{topic}.txt"
-        mode = "w" if options["new_topic"] else "a"
-        with open(filepath, mode) as f:
-            f.write("\n".join(user_text_data))
-            f.write("\n")
-            f.write("---\n")
-            f.write("\n".join(condition_text_data))
-            f.write("\n")
-            f.write("--------------------")
-            f.write("\n" * 2)
 
-        if not options["new_topic"]:
-            dirname = f"{CHAT_DATA_DIR}/topics"
-            filepath = f"{dirname}/{options['topic']}.txt"
-            old_texts = cls.get_old_text_data(filepath)
-            additional_messages = []
-            for text in old_texts:
+        chat_file = ChatTextFile()
+        chat_file.load_from_topic(topic)
+        # Response data will be added later
+        chat_file.add_part(user_text, condition_texts, "")
+        chat_file.save()
+
+        for condition in options["hidden_conditions"]:
+            req_data["messages"].append({
+                "role": "system",
+                "content": condition,
+            })
+
+        additional_messages = []
+        for part in range(chat_file.num_parts() - 1):
+            additional_messages.append({
+                "role": "user",
+                "content": chat_file.get_user_data(part),
+            })
+            for condition in chat_file.get_condition_data(part):
                 additional_messages.append({
-                    "role": "user",
-                    "content": text["user_data"],
+                    "role": "system",
+                    "content": condition,
                 })
-                for condition in text["condition_data"]:
-                    additional_messages.append({
-                        "role": "system",
-                        "content": condition,
-                    })
-                additional_messages.append({
-                    "role": "assistant",
-                    "content": text["response_data"]
-                })
+            additional_messages.append({
+                "role": "assistant",
+                "content": chat_file.get_response_data(part),
+            })
             req_data["messages"] = additional_messages + req_data["messages"]
 
-        OPENAI_OT_ProcessMessage.exec(transaction_id, 'CHAT', {"filepath": filepath}, options, sync=sync, context=context, operator_instance=operator_instance)
+        OPENAI_OT_ProcessMessage.exec(transaction_id, 'CHAT', {}, options, sync=sync, context=context, operator_instance=operator_instance)
 
         # Send prompt.
         headers = {
@@ -394,19 +326,14 @@ class RequestHandler:
                                  headers=headers, data=json.dumps(req_data))
         response.raise_for_status()
         response_data = response.json()
-
-        # Get text.
         response_text = response_data["choices"][0]["message"]["content"]
 
         # Save response text.
-        with open(filepath, "a") as f:
-            f.write(response_text)
-            f.write("\n" * 2)
-            f.write("====================\n")
-            f.write("\n")
+        chat_file.modify_part(chat_file.num_parts() - 1, response_data=response_text)
+        chat_file.save()
 
         # Post to message queue.
-        OPENAI_OT_ProcessMessage.exec(transaction_id, 'CHAT', {"filepath": filepath}, options, sync=sync, context=context, operator_instance=operator_instance)
+        OPENAI_OT_ProcessMessage.exec(transaction_id, 'CHAT', {}, options, sync=sync, context=context, operator_instance=operator_instance)
         OPENAI_OT_ProcessMessage.exec(transaction_id, 'END_OF_TRANSACTION', None, None, sync=sync, context=context, operator_instance=operator_instance)
 
     @classmethod

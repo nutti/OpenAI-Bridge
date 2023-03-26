@@ -14,19 +14,23 @@ def register():
     bpy.utils.register_class(panel.OPENAI_PT_EditImage)
     bpy.utils.register_class(panel.OPENAI_PT_TranscribeSoundStrip)
     bpy.utils.register_class(panel.OPENAI_PT_TranscribeAudio)
+    bpy.utils.register_class(panel.OPENAI_PT_Chat)
+    bpy.utils.register_class(panel.OPENAI_PT_ChatPrompt)
+    bpy.utils.register_class(panel.OPENAI_PT_ChatLog)
 
     bpy.utils.register_tool(tool.OPENAI_WST_OpenAIImageTool, separator=True)
     bpy.utils.register_tool(tool.OPENAI_WST_OpenAIAudioTool, separator=True)
-    bpy.utils.register_tool(tool.OPENAI_WST_OpenAIChatTool, separator=True, group=True)
-    bpy.utils.register_tool(tool.OPENAI_WST_OpenAICodeTool, after={tool.OPENAI_WST_OpenAIChatTool.bl_idname})
+    bpy.utils.register_tool(tool.OPENAI_WST_OpenAIChatTool, separator=True)
 
 
 def unregister():
-    bpy.utils.unregister_tool(tool.OPENAI_WST_OpenAICodeTool)
     bpy.utils.unregister_tool(tool.OPENAI_WST_OpenAIChatTool)
     bpy.utils.unregister_tool(tool.OPENAI_WST_OpenAIAudioTool)
     bpy.utils.unregister_tool(tool.OPENAI_WST_OpenAIImageTool)
 
+    bpy.utils.unregister_class(panel.OPENAI_PT_ChatLog)
+    bpy.utils.unregister_class(panel.OPENAI_PT_ChatPrompt)
+    bpy.utils.unregister_class(panel.OPENAI_PT_Chat)
     bpy.utils.unregister_class(panel.OPENAI_PT_TranscribeAudio)
     bpy.utils.unregister_class(panel.OPENAI_PT_TranscribeSoundStrip)
     bpy.utils.unregister_class(panel.OPENAI_PT_EditImage)

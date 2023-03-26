@@ -29,6 +29,8 @@ else:
 
 
 def register():
+    properties.register_properties()
+
     op.register()
     bpy.utils.register_class(preferences.OPENAI_Preferences)
     ui.register()
@@ -36,11 +38,8 @@ def register():
     bpy.utils.register_class(utils.threading.OPENAI_OT_ProcessMessage)
     utils.threading.RequestHandler.start()
 
-    properties.register_properties()
-
 
 def unregister():
-    properties.unregister_properties()
 
     bpy.utils.unregister_class(utils.threading.OPENAI_OT_ProcessMessage)
     utils.threading.RequestHandler.stop()
@@ -48,3 +47,5 @@ def unregister():
     ui.unregister()
     bpy.utils.unregister_class(preferences.OPENAI_Preferences)
     op.unregister()
+
+    properties.unregister_properties()

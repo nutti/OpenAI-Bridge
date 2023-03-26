@@ -5,6 +5,7 @@ import os
 
 from .utils.common import (
     IMAGE_DATA_DIR,
+    CHAT_DATA_DIR,
 )
 
 
@@ -166,13 +167,71 @@ class OPENAI_AudioToolAudioProperties(bpy.types.PropertyGroup):
     )
 
 
+class OPENAI_ChatToolProperties(bpy.types.PropertyGroup):
+    prompt: bpy.props.StringProperty(
+        name="Prompt",
+    )
+    new_topic: bpy.props.BoolProperty(
+        name="New Topic",
+        default=True,
+    )
+    new_topic_name: bpy.props.StringProperty(
+        name="New Topic Name",
+        default="Blender Chat"
+    )
+    num_conditions: bpy.props.IntProperty(
+        name="Number of Conditions",
+        default=1,
+        min=0,
+        max=10,
+    )
+
+    def get_topics(self, context):
+        topic_dir = f"{CHAT_DATA_DIR}/topics"
+        if not os.path.isdir(topic_dir):
+            return []
+
+        items = []
+        topic_files = glob.glob(f"{topic_dir}/**/*.json", recursive=True)
+        for file in topic_files:
+            topic_name = os.path.splitext(os.path.basename(file))[0]
+            items.append((topic_name, topic_name, file))
+        return items
+
+    topic: bpy.props.EnumProperty(
+        name="Topic",
+        items=get_topics,
+    )
+
+
+class OPENAI_ChatToolConditions(bpy.types.PropertyGroup):
+    condition: bpy.props.StringProperty(
+        name="Condition",
+    )
+
+
 def register_properties():
     scene = bpy.types.Scene
 
     bpy.utils.register_class(OPENAI_ImageToolProperties)
     bpy.utils.register_class(OPENAI_AudioToolProperties)
     bpy.utils.register_class(OPENAI_AudioToolAudioProperties)
+    bpy.utils.register_class(OPENAI_ChatToolProperties)
+    bpy.utils.register_class(OPENAI_ChatToolConditions)
 
+    # Properties for Image Tool.
+    scene.openai_image_tool_props = bpy.props.PointerProperty(
+        type=OPENAI_ImageToolProperties
+    )
+    scene.openai_image_tool_image_collection = bpy.utils.previews.new()
+
+    # Properties for Audio Tool.
+    scene.openai_audio_tool_props = bpy.props.PointerProperty(
+        type=OPENAI_AudioToolProperties,
+    )
+    scene.openai_audio_tool_audio_props = bpy.props.PointerProperty(
+        type=OPENAI_AudioToolAudioProperties,
+    )
     scene.openai_audio_tool_target_text = bpy.props.PointerProperty(
         name="Target Text",
         type=bpy.types.Text,
@@ -182,16 +241,13 @@ def register_properties():
         type=bpy.types.Sound,
     )
 
-    scene.openai_image_tool_props = bpy.props.PointerProperty(
-        type=OPENAI_ImageToolProperties
+    # Properties for Chat Tool.
+    scene.openai_chat_tool_props = bpy.props.PointerProperty(
+        type=OPENAI_ChatToolProperties,
     )
-    scene.openai_image_tool_image_collection = bpy.utils.previews.new()
-
-    scene.openai_audio_tool_props = bpy.props.PointerProperty(
-        type=OPENAI_AudioToolProperties,
-    )
-    scene.openai_audio_tool_audio_props = bpy.props.PointerProperty(
-        type=OPENAI_AudioToolAudioProperties,
+    scene.openai_chat_tool_conditions = bpy.props.CollectionProperty(
+        name="Conditions",
+        type=OPENAI_ChatToolConditions,
     )
 
 
@@ -200,13 +256,19 @@ def unregister_properties():
 
     bpy.utils.previews.remove(scene.openai_image_tool_image_collection)
 
-    del scene.openai_audio_tool_audio_props
-    del scene.openai_audio_tool_props
+    del scene.openai_chat_tool_conditions
+    del scene.openai_chat_tool_props
+
     del scene.openai_image_tool_image_collection
     del scene.openai_image_tool_props
+
     del scene.openai_audio_tool_source_sound_data_block
     del scene.openai_audio_tool_target_text
+    del scene.openai_audio_tool_audio_props
+    del scene.openai_audio_tool_props
 
+    bpy.utils.unregister_class(OPENAI_ChatToolConditions)
+    bpy.utils.unregister_class(OPENAI_ChatToolProperties)
     bpy.utils.unregister_class(OPENAI_AudioToolAudioProperties)
     bpy.utils.unregister_class(OPENAI_AudioToolProperties)
     bpy.utils.unregister_class(OPENAI_ImageToolProperties)
