@@ -10,11 +10,14 @@ import bpy
 
 
 def register():
+    bpy.utils.register_class(panel.OPENAI_PT_ImageTool)
     bpy.utils.register_class(panel.OPENAI_PT_GenerateImage)
-    bpy.utils.register_class(panel.OPENAI_PT_EditImage)
+    bpy.utils.register_class(panel.OPENAI_PT_GeneratedImages)
+    bpy.utils.register_class(panel.OPENAI_PT_AudioToolSequenceEditor)
     bpy.utils.register_class(panel.OPENAI_PT_TranscribeSoundStrip)
+    bpy.utils.register_class(panel.OPENAI_PT_AudioToolTextEditor)
     bpy.utils.register_class(panel.OPENAI_PT_TranscribeAudio)
-    bpy.utils.register_class(panel.OPENAI_PT_Chat)
+    bpy.utils.register_class(panel.OPENAI_PT_ChatTool)
     bpy.utils.register_class(panel.OPENAI_PT_ChatPrompt)
     bpy.utils.register_class(panel.OPENAI_PT_ChatLog)
 
@@ -30,8 +33,11 @@ def unregister():
 
     bpy.utils.unregister_class(panel.OPENAI_PT_ChatLog)
     bpy.utils.unregister_class(panel.OPENAI_PT_ChatPrompt)
-    bpy.utils.unregister_class(panel.OPENAI_PT_Chat)
+    bpy.utils.unregister_class(panel.OPENAI_PT_ChatTool)
     bpy.utils.unregister_class(panel.OPENAI_PT_TranscribeAudio)
+    bpy.utils.unregister_class(panel.OPENAI_PT_AudioToolTextEditor)
     bpy.utils.unregister_class(panel.OPENAI_PT_TranscribeSoundStrip)
-    bpy.utils.unregister_class(panel.OPENAI_PT_EditImage)
+    bpy.utils.unregister_class(panel.OPENAI_PT_AudioToolSequenceEditor)
+    bpy.utils.unregister_class(panel.OPENAI_PT_GeneratedImages)
     bpy.utils.unregister_class(panel.OPENAI_PT_GenerateImage)
+    bpy.utils.unregister_class(panel.OPENAI_PT_ImageTool)

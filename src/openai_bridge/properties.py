@@ -6,6 +6,7 @@ import os
 from .utils.common import (
     IMAGE_DATA_DIR,
     CHAT_DATA_DIR,
+    ICON_DIR,
 )
 
 
@@ -219,6 +220,9 @@ def register_properties():
     bpy.utils.register_class(OPENAI_ChatToolProperties)
     bpy.utils.register_class(OPENAI_ChatToolConditions)
 
+    scene.openai_icon_collection = bpy.utils.previews.new()
+    scene.openai_icon_collection.load("openai_base", f"{ICON_DIR}/openai_base.png", 'IMAGE')
+
     # Properties for Image Tool.
     scene.openai_image_tool_props = bpy.props.PointerProperty(
         type=OPENAI_ImageToolProperties
@@ -254,6 +258,7 @@ def register_properties():
 def unregister_properties():
     scene = bpy.types.Scene
 
+    bpy.utils.previews.remove(scene.openai_icon_collection)
     bpy.utils.previews.remove(scene.openai_image_tool_image_collection)
 
     del scene.openai_chat_tool_conditions
@@ -266,6 +271,8 @@ def unregister_properties():
     del scene.openai_audio_tool_target_text
     del scene.openai_audio_tool_audio_props
     del scene.openai_audio_tool_props
+
+    del scene.openai_icon_collection
 
     bpy.utils.unregister_class(OPENAI_ChatToolConditions)
     bpy.utils.unregister_class(OPENAI_ChatToolProperties)

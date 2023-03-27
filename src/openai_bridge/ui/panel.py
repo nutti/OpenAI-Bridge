@@ -1,6 +1,4 @@
 import bpy
-import os
-import re
 import textwrap
 
 from ..op import image
@@ -13,12 +11,35 @@ from ..utils.common import (
 from ..utils import error_storage
 
 
+class OPENAI_PT_ImageTool(bpy.types.Panel):
+
+    bl_region_type = 'UI'
+    bl_space_type = 'IMAGE_EDITOR'
+    bl_category = "OpenAI"
+    bl_label = "Image Tool"
+
+    def draw_header(self, context):
+        sc = context.scene
+        layout = self.layout
+
+        layout.label(text="", icon_value=sc.openai_icon_collection["openai_base"].icon_id)
+
+    def draw(self, context):
+        pass
+
+
 class OPENAI_PT_GenerateImage(bpy.types.Panel):
 
     bl_region_type = 'UI'
     bl_space_type = 'IMAGE_EDITOR'
     bl_category = "OpenAI"
     bl_label = "Generate Image"
+    bl_parent_id = "OPENAI_PT_ImageTool"
+
+    def draw_header(self, context):
+        layout = self.layout
+
+        layout.label(text="", icon='CONSOLE')
 
     def draw(self, context):
         layout = self.layout
@@ -53,12 +74,18 @@ class OPENAI_PT_GenerateImage(bpy.types.Panel):
         r.enabled = not props.auto_image_name
 
 
-class OPENAI_PT_EditImage(bpy.types.Panel):
+class OPENAI_PT_GeneratedImages(bpy.types.Panel):
 
     bl_region_type = 'UI'
     bl_space_type = 'IMAGE_EDITOR'
     bl_category = "OpenAI"
-    bl_label = "Edit Image"
+    bl_label = "Generated Images"
+    bl_parent_id = "OPENAI_PT_ImageTool"
+
+    def draw_header(self, context):
+        layout = self.layout
+
+        layout.label(text="", icon='IMAGE_DATA')
 
     def draw(self, context):
         layout = self.layout
@@ -76,12 +103,36 @@ class OPENAI_PT_EditImage(bpy.types.Panel):
         # TODO: Add editing tool
 
 
+class OPENAI_PT_AudioToolSequenceEditor(bpy.types.Panel):
+
+    bl_region_type = 'UI'
+    bl_space_type = 'SEQUENCE_EDITOR'
+    bl_category = "OpenAI"
+    bl_label = "Audio Tool"
+
+    def draw_header(self, context):
+        sc = context.scene
+        layout = self.layout
+
+        layout.label(text="", icon_value=sc.openai_icon_collection["openai_base"].icon_id)
+
+    def draw(self, context):
+        pass
+
+
 class OPENAI_PT_TranscribeSoundStrip(bpy.types.Panel):
 
     bl_region_type = 'UI'
     bl_space_type = 'SEQUENCE_EDITOR'
     bl_category = "OpenAI"
     bl_label = "Transcribe Sound Strip"
+    bl_parent_id = "OPENAI_PT_AudioToolSequenceEditor"
+
+    def draw_header(self, context):
+        sc = context.scene
+        layout = self.layout
+
+        layout.label(text="", icon='SOUND')
 
     def draw(self, context):
         layout = self.layout
@@ -137,12 +188,36 @@ class OPENAI_PT_TranscribeSoundStrip(bpy.types.Panel):
         r.enabled = not props.auto_sequence_channel
 
 
+class OPENAI_PT_AudioToolTextEditor(bpy.types.Panel):
+
+    bl_region_type = 'UI'
+    bl_space_type = 'TEXT_EDITOR'
+    bl_category = "OpenAI"
+    bl_label = "Audio Tool"
+
+    def draw_header(self, context):
+        sc = context.scene
+        layout = self.layout
+
+        layout.label(text="", icon_value=sc.openai_icon_collection["openai_base"].icon_id)
+
+    def draw(self, context):
+        pass
+
+
 class OPENAI_PT_TranscribeAudio(bpy.types.Panel):
 
     bl_region_type = 'UI'
     bl_space_type = 'TEXT_EDITOR'
     bl_category = "OpenAI"
     bl_label = "Transcribe Audio"
+    bl_parent_id = "OPENAI_PT_AudioToolTextEditor"
+
+    def draw_header(self, context):
+        sc = context.scene
+        layout = self.layout
+
+        layout.label(text="", icon='SOUND')
 
     def draw(self, context):
         layout = self.layout
@@ -200,12 +275,18 @@ class OPENAI_PT_TranscribeAudio(bpy.types.Panel):
         r.enabled = not props.current_text
 
 
-class OPENAI_PT_Chat(bpy.types.Panel):
+class OPENAI_PT_ChatTool(bpy.types.Panel):
 
     bl_region_type = 'UI'
     bl_space_type = 'VIEW_3D'
     bl_category = "OpenAI"
-    bl_label = "Chat"
+    bl_label = "Chat Tool"
+
+    def draw_header(self, context):
+        sc = context.scene
+        layout = self.layout
+
+        layout.label(text="", icon_value=sc.openai_icon_collection["openai_base"].icon_id)
 
     def draw(self, context):
         layout = self.layout
@@ -241,7 +322,12 @@ class OPENAI_PT_ChatPrompt(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
     bl_category = "OpenAI"
     bl_label = "Prompt"
-    bl_parent_id = "OPENAI_PT_Chat"
+    bl_parent_id = "OPENAI_PT_ChatTool"
+
+    def draw_header(self, context):
+        layout = self.layout
+
+        layout.label(text="", icon='CONSOLE')
 
     def draw(self, context):
         layout = self.layout
@@ -278,7 +364,12 @@ class OPENAI_PT_ChatLog(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
     bl_category = "OpenAI"
     bl_label = "Log"
-    bl_parent_id = "OPENAI_PT_Chat"
+    bl_parent_id = "OPENAI_PT_ChatTool"
+
+    def draw_header(self, context):
+        layout = self.layout
+
+        layout.label(text="", icon='WORDWRAP_ON')
 
     def draw_data(self, context, layout, lines):
         wrapped_length = int(context.region.width / 7)
