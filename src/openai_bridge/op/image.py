@@ -91,6 +91,8 @@ class OPENAI_OT_GeneateImage(bpy.types.Operator):
     def draw(self, context):
         layout = self.layout
 
+        layout.prop(self, "prompt")
+
         row = layout.row()
         col = row.column(align=True)
         col.label(text="Size:")
