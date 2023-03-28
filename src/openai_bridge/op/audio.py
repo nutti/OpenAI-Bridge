@@ -71,7 +71,7 @@ class OPENAI_OT_TranscribeSoundStrip(bpy.types.Operator):
         row = col.row(align=True)
         row.alignment = 'LEFT'
         row.label(text="Result:")
-        row.prop(props, "auto_sequence_channel", text="Same")
+        row.prop(props, "auto_sequence_channel", text="Auto")
         r = col.row(align=True)
         r.prop(props, "sequence_channel", text="Channel")
         r.enabled = not props.auto_sequence_channel
@@ -81,6 +81,8 @@ class OPENAI_OT_TranscribeSoundStrip(bpy.types.Operator):
         user_prefs = context.preferences
         prefs = user_prefs.addons["openai_bridge"].preferences
 
+        if context.scene.sequence_editor.active_strip is None:
+            return {'CANCELLED'}
         if context.scene.sequence_editor.active_strip.type != 'SOUND':
             return {'CANCELLED'}
 

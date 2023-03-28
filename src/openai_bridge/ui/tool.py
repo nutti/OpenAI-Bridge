@@ -1,7 +1,7 @@
 import bpy
 
 from ..op.image import OPENAI_OT_GeneateImage
-from ..op.audio import OPENAI_OT_TranscribeAudio
+from ..op.audio import OPENAI_OT_TranscribeSoundStrip
 from ..op.chat import OPENAI_OT_Chat
 from ..op.code import OPENAI_OT_Code
 from ..utils.common import ICON_DIR
@@ -42,7 +42,7 @@ class OPENAI_WST_OpenAIAudioTool(bpy.types.WorkSpaceTool):
 
     bl_keymap = (
         (
-            OPENAI_OT_TranscribeAudio.bl_idname,
+            OPENAI_OT_TranscribeSoundStrip.bl_idname,
             {"type": 'SPACE', "value": 'PRESS'},
             {},
         ),

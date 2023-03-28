@@ -182,7 +182,7 @@ class OPENAI_PT_TranscribeSoundStrip(bpy.types.Panel):
         row = col.row(align=True)
         row.alignment = 'LEFT'
         row.label(text="Result:")
-        row.prop(props, "auto_sequence_channel", text="Same Channel")
+        row.prop(props, "auto_sequence_channel", text="Auto")
         r = col.row(align=True)
         r.prop(props, "sequence_channel", text="Channel")
         r.enabled = not props.auto_sequence_channel
@@ -244,7 +244,8 @@ class OPENAI_PT_TranscribeAudio(bpy.types.Panel):
         if props.source == 'AUDIO_FILE':
             op.audio_filepath = props.source_audio_filepath
         elif props.source == 'SOUND_DATA_BLOCK':
-            op.audio_filepath = sc.openai_audio_tool_source_sound_data_block.filepath
+            if sc.openai_audio_tool_source_sound_data_block is not None:
+                op.audio_filepath = sc.openai_audio_tool_source_sound_data_block.filepath
         if props.current_text:
             op.target_text_name = context.space_data.text.name
         else:
@@ -271,7 +272,7 @@ class OPENAI_PT_TranscribeAudio(bpy.types.Panel):
         row.label(text="Result:")
         row.prop(props, "current_text", text="Current Text")
         r = col.row(align=True)
-        r.prop(sc, "openai_audio_tool_target_text", text="Channel")
+        r.prop(sc, "openai_audio_tool_target_text", text="")
         r.enabled = not props.current_text
 
 
