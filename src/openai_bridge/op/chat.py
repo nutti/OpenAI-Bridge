@@ -2,7 +2,6 @@ import bpy
 import os
 import glob
 
-from ..properties import OPENAI_ChatToolConditions
 from ..utils.common import (
     CHAT_DATA_DIR,
     ChatTextFile,
@@ -14,6 +13,138 @@ from ..utils.threading import (
     async_request,
 )
 from ..utils import error_storage
+
+
+class OPENAI_OT_AskOperatorUsage(bpy.types.Operator):
+
+    bl_idname = "system.openai_ask_operator_usage"
+    bl_description = "Ask the usage of the mouse focussed operator"
+    bl_label = "Ask Operator Usage"
+    bl_options = {'REGISTER'}
+
+    @classmethod
+    def poll(cls, context):
+        if hasattr(context, "button_operator"):
+            return True
+
+        return False
+
+    def execute(self, context):
+        user_prefs = context.preferences
+        prefs = user_prefs.addons["openai_bridge"].preferences
+        api_key = prefs.api_key
+
+        if not hasattr(context, "button_operator"):
+            self.report({'WARNING'}, "Failed to find the operator")
+            return {'FINISHED'}
+
+        op = context.button_operator
+        sp = op.bl_rna.identifier.split("_")
+        py_op_func = f"bpy.ops.{sp[0].lower()}.{sp[2].lower()}()"
+        op_desc = op.bl_rna.description
+        op_name = op.bl_rna.name
+
+        request = {
+            "model": prefs.chat_tool_model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": f"Explain about the operator '{op_name}'"
+                },
+            ]
+        }
+
+        options = {
+            "topic": f"Ask Operator '{op_name}'",
+            "new_topic": True,
+            "hidden_conditions": [
+                "This question relates to the Blender",
+                "Avoid Python code",
+                f"Python API to call operator: {py_op_func}",
+                f"Operator description in Blender Application: {op_desc}",
+            ]
+        }
+
+        if not prefs.async_execution:
+            sync_request(api_key, 'CHAT', request, options, context, self)
+        else:
+            async_request(api_key, 'CHAT', request, options)
+            # Run Message Processing Timer if it has not launched yet.
+            bpy.ops.system.openai_process_message()
+
+        print(f"Sent Request: f{request}")
+        return {'FINISHED'}
+
+
+class OPENAI_OT_AskPropertyUsage(bpy.types.Operator):
+
+    bl_idname = "system.openai_ask_property_usage"
+    bl_description = "Ask the usage of the mouse focussed property"
+    bl_label = "Ask Property Usage"
+    bl_options = {'REGISTER'}
+
+    @classmethod
+    def poll(cls, context):
+        if not hasattr(context, "button_prop"):
+            return False
+        if not hasattr(context, "button_pointer"):
+            return False
+
+        return True
+
+    def execute(self, context):
+        user_prefs = context.preferences
+        prefs = user_prefs.addons["openai_bridge"].preferences
+        api_key = prefs.api_key
+
+        if not hasattr(context, "button_pointer") or not hasattr(context, "button_prop"):
+            self.report({'WARNING'}, "Failed to find the pointer or property")
+            return {'CANCELLED'}
+
+        ptr = context.button_pointer
+        prop = context.button_prop
+
+        class_name = ptr.bl_rna.name
+        class_desc = ptr.bl_rna.description
+        py_class = f"bpy.types.{ptr.bl_rna.identifier}"
+        prop_name = prop.name
+        prop_desc = prop.description
+        py_prop_name = prop.identifier
+
+        request = {
+            "model": prefs.chat_tool_model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": f"Explain about the property '{prop_name}' of class '{class_name}'"
+                },
+            ]
+        }
+
+        options = {
+            "topic": f"Ask Property '{prop_name}' of '{class_name}'",
+            "new_topic": True,
+            "hidden_conditions": [
+                "This question relates to the Blender",
+                "Avoid Python code",
+                f"Class description in Blender Application: {class_desc}",
+                f"Python API for class: {py_class}",
+                f"Property description in Blender Application: {prop_desc}",
+                f"Python API for property: {py_prop_name}",
+            ]
+        }
+
+        if not prefs.async_execution:
+            sync_request(api_key, 'CHAT', request, options, context, self)
+        else:
+            async_request(api_key, 'CHAT', request, options)
+            # Run Message Processing Timer if it has not launched yet.
+            bpy.ops.system.openai_process_message()
+
+        print(f"Sent Request: f{request}")
+        return {'FINISHED'}
+
+        return {'FINISHED'}
 
 
 class OPENAI_OT_AddChatCondition(bpy.types.Operator):
@@ -266,6 +397,12 @@ class OPENAI_OT_CopyChatCodeError(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class OPENAI_ChatOperatorConditionProperties(bpy.types.PropertyGroup):
+    condition: bpy.props.StringProperty(
+        name="Condition",
+    )
+
+
 class OPENAI_OT_Chat(bpy.types.Operator):
 
     bl_idname = "system.openai_chat"
@@ -284,7 +421,7 @@ class OPENAI_OT_Chat(bpy.types.Operator):
     )
     conditions: bpy.props.CollectionProperty(
         name="Conditions",
-        type=OPENAI_ChatToolConditions,
+        type=OPENAI_ChatOperatorConditionProperties,
     )
 
     new_topic: bpy.props.BoolProperty(

@@ -28,6 +28,13 @@ else:
     from . import utils
 
 
+def menu_func(self, context):
+    layout = self.layout
+    layout.separator()
+    layout.operator(op.chat.OPENAI_OT_AskOperatorUsage.bl_idname)
+    layout.operator(op.chat.OPENAI_OT_AskPropertyUsage.bl_idname)
+
+
 def register():
     properties.register_properties()
 
@@ -38,8 +45,12 @@ def register():
     bpy.utils.register_class(utils.threading.OPENAI_OT_ProcessMessage)
     utils.threading.RequestHandler.start()
 
+    bpy.types.WM_MT_button_context.append(menu_func)
+
 
 def unregister():
+
+    bpy.types.WM_MT_button_context.remove(menu_func)
 
     bpy.utils.unregister_class(utils.threading.OPENAI_OT_ProcessMessage)
     utils.threading.RequestHandler.stop()

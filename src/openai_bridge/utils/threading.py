@@ -84,6 +84,7 @@ class OPENAI_OT_ProcessMessage(bpy.types.Operator):
         elif msg_type == 'CHAT':
             # Focus on the topic.
             context.scene.openai_chat_tool_props.topic = options["topic"]
+            context.scene.openai_chat_tool_props.new_topic = False
         elif msg_type == 'CODE':
             filepath = data["filepath"]
             with open(filepath, "r", encoding="utf-8") as f:

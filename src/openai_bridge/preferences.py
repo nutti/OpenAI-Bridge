@@ -4,18 +4,26 @@ import bpy
 class OPENAI_Preferences(bpy.types.AddonPreferences):
     bl_idname = "openai_bridge"
 
+    category: bpy.props.EnumProperty(
+        name="Category",
+        items=[
+            ('SYSTEM', "System", "System configuration"),
+            ('IMAGE_TOOL', "Image Tool", "Image tool configuration"),
+            ('AUDIO_TOOL', "Audio Tool", "Audio tool configuration"),
+            ('CHAT_TOOL', "Chat Tool", "Chat tool configuration"),
+        ],
+    )
+
     api_key: bpy.props.StringProperty(
         name="API Key",
         subtype='PASSWORD',
     )
-
     popup_menu_width: bpy.props.IntProperty(
         name="Popup Menu Width",
         default=300,
         min=100,
         max=1000,
     )
-
     async_execution: bpy.props.BoolProperty(
         name="Async Execution",
         description="Execute operations asynchronously",
@@ -30,6 +38,7 @@ class OPENAI_Preferences(bpy.types.AddonPreferences):
         ],
         default="whisper-1",
     )
+
     chat_tool_model: bpy.props.EnumProperty(
         name="Chat Tool Model",
         description="Model to be used for Chat Tool",
@@ -40,6 +49,14 @@ class OPENAI_Preferences(bpy.types.AddonPreferences):
         ],
         default="gpt-3.5-turbo",
     )
+    chat_log_wrap_width: bpy.props.FloatProperty(
+        name="Wrap Width",
+        default=0.11,
+        min=0.01,
+        max=1.0,
+        step=0.01,
+    )
+
     code_tool_model: bpy.props.EnumProperty(
         name="Code Tool Model",
         description="Model to be used for Code Tool",
@@ -54,16 +71,33 @@ class OPENAI_Preferences(bpy.types.AddonPreferences):
     def draw(self, _):
         layout = self.layout
 
-        layout.prop(self, "api_key")
+        row = layout.row()
+        row.prop(self, "category", expand=True)
 
-        layout.separator()
+        if self.category == 'SYSTEM':
+            layout.prop(self, "api_key")
 
-        sp = layout.split(factor=0.35)
-        sp.prop(self, "popup_menu_width")
-        sp.prop(self, "async_execution")
-
-        layout.separator()
-
-        layout.prop(self, "audio_tool_model")
-        layout.prop(self, "chat_tool_model")
-        layout.prop(self, "code_tool_model")
+            col = layout.column()
+            row = col.row()
+            row.alignment = 'LEFT'
+            row.prop(self, "popup_menu_width")
+            col.separator()
+            row = col.row()
+            row.alignment = 'LEFT'
+            row.prop(self, "async_execution")
+        elif self.category == 'IMAGE_TOOL':
+            layout.label(text="No configuration")
+        elif self.category == 'AUDIO_TOOL':
+            col = layout.column()
+            row = col.row()
+            row.alignment = 'LEFT'
+            row.prop(self, "audio_tool_model")
+        elif self.category == 'CHAT_TOOL':
+            col = layout.column()
+            row = col.row()
+            row.alignment = 'LEFT'
+            row.prop(self, "chat_tool_model")
+            col.separator()
+            row = col.row()
+            row.alignment = 'LEFT'
+            row.prop(self, "chat_log_wrap_width")

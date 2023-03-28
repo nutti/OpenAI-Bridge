@@ -1,8 +1,10 @@
 if "bpy" in locals():
     import importlib
+    importlib.reload(menu)
     importlib.reload(panel)
     importlib.reload(tool)
 else:
+    from . import menu
     from . import panel
     from . import tool
 
@@ -10,6 +12,8 @@ import bpy
 
 
 def register():
+    bpy.utils.register_class(menu.WM_MT_button_context)
+
     bpy.utils.register_class(panel.OPENAI_PT_ImageTool)
     bpy.utils.register_class(panel.OPENAI_PT_GenerateImage)
     bpy.utils.register_class(panel.OPENAI_PT_GeneratedImages)
@@ -27,6 +31,7 @@ def register():
 
 
 def unregister():
+
     bpy.utils.unregister_tool(tool.OPENAI_WST_OpenAIChatTool)
     bpy.utils.unregister_tool(tool.OPENAI_WST_OpenAIAudioTool)
     bpy.utils.unregister_tool(tool.OPENAI_WST_OpenAIImageTool)
@@ -41,3 +46,5 @@ def unregister():
     bpy.utils.unregister_class(panel.OPENAI_PT_GeneratedImages)
     bpy.utils.unregister_class(panel.OPENAI_PT_GenerateImage)
     bpy.utils.unregister_class(panel.OPENAI_PT_ImageTool)
+
+    bpy.utils.unregister_class(menu.WM_MT_button_context)

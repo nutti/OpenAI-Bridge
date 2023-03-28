@@ -300,12 +300,14 @@ class OPENAI_PT_ChatTool(bpy.types.Panel):
         row = row.row(align=True)
         row.enabled = not props.new_topic
         op = row.operator(chat.OPENAI_OT_CopyChatLog.bl_idname, text="", icon='DUPLICATE')
-        op.topic = props.topic
+        if props.topic:
+            op.topic = props.topic
         op.part = -1
         op.role = 'ALL'
         op.target = 'CLIPBOARD'
         op = row.operator(chat.OPENAI_OT_CopyChatLog.bl_idname, text="", icon='TEXT')
-        op.topic = props.topic
+        if props.topic:
+            op.topic = props.topic
         op.part = -1
         op.role = 'ALL'
         op.target = 'TEXT'
@@ -339,7 +341,8 @@ class OPENAI_PT_ChatPrompt(bpy.types.Panel):
         row.prop(props, "prompt", text="")
         op = row.operator(chat.OPENAI_OT_Chat.bl_idname, icon='PLAY', text="")
         op.prompt = props.prompt
-        op.topic = props.topic
+        if props.topic:
+            op.topic = props.topic
         op.new_topic = props.new_topic
         op.new_topic_name = props.new_topic_name
         op.num_conditions = len(sc.openai_chat_tool_conditions)
@@ -372,7 +375,10 @@ class OPENAI_PT_ChatLog(bpy.types.Panel):
         layout.label(text="", icon='WORDWRAP_ON')
 
     def draw_data(self, context, layout, lines):
-        wrapped_length = int(context.region.width / 7)
+        user_prefs = context.preferences
+        prefs = user_prefs.addons["openai_bridge"].preferences
+
+        wrapped_length = int(context.region.width * prefs.chat_log_wrap_width)
         wrapper = textwrap.TextWrapper(width=wrapped_length)
         col = layout.column(align=True)
         for l in lines:
@@ -388,7 +394,7 @@ class OPENAI_PT_ChatLog(bpy.types.Panel):
         sc = context.scene
         props = sc.openai_chat_tool_props
 
-        if props.new_topic:
+        if props.new_topic or not props.topic:
             return
 
         chat_file = ChatTextFile()
