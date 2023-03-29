@@ -2,7 +2,33 @@
 
 # Change Log
 
-## [Unreleased](https://github.com/nutti/OpenAI-Bridge/compare/v0.1.0...main)
+## [Unreleased](https://github.com/nutti/OpenAI-Bridge/compare/v0.2.0...main)
+
+## [Version 0.2.0](https://github.com/nutti/OpenAI-Bridge/compare/v0.1.0...v0.2.0) - 2023.3.XX
+
+### New Features
+
+* Image Tool
+  * Create an image block from a generated image.
+  * Remove a generated image.
+* Audio Tool
+  * Transcribe a sound strip.
+  * Transcribe a sound data block.
+* Chat Tool
+  * List all past topics.
+  * Execute code and check an error.
+  * Copy chat logs of a past topic.
+  * Ask Blender Operators/Properties.
+
+### Other Updates
+
+* Improve UI for accessing tools more friendly.
+  * (Image Tool) Add [Generate Image] panel and [Generated Images] panel (with [OpenAI] tab) to the sidebar of Image Editor.
+  * (Image Tool) Move workspace tool to Image Editor.
+  * (Audio Tool) Add [Transcribe Sound Strip] panel (with [OpenAI] tab) to the sidebar of Sequence Editor.
+  * (Audio Tool) Add [Transcribe Audio] panel (with [OpenAI] tab) to the sidebar of Text Editor.
+  * (Audio Tool) Move workspace tool to Sequence Editor
+  * (Chat Tool) Add [Chat] panel (with [OpenAI] tab) to the sidebar of 3D Viewport.
 
 ## [Version 0.1.0](https://github.com/nutti/OpenAI-Bridge/compare/a8a4c9785ce166a1d77c060ea58b9b45ec4d4355...v0.1.0) - 2023.3.18
 

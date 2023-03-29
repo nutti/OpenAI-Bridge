@@ -14,6 +14,7 @@ There are two ways to install OpenAI-Bridge add-on.
 |Version|Download URL|
 |---|---|
 |*unstable*|[Download](https://github.com/nutti/OpenAI-Bridge/archive/refs/heads/main.zip)|
+|0.2.0|[Download](https://github.com/nutti/OpenAI-Bridge/releases/tag/v0.2.0)|
 |0.1.0|[Download](https://github.com/nutti/OpenAI-Bridge/releases/tag/v0.1.0)|
 
 #### 2. Unzip it, and check the add-on sources
@@ -26,6 +27,7 @@ Add-on sources are located on the different places depending on the add-on versi
 |Version|Sources|
 |---|---|
 |unstable|src/openai_bridge|
+|v0.2.0|openai_bridge|
 |v0.1.0|openai_bridge|
 
 #### 3. Copy add-on sources into your add-on folder

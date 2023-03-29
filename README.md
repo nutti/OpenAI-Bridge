@@ -19,12 +19,26 @@ add-on.
 
 The features of this add-on are as follows.
 
-* Image
-  * Generate Image: Generate images using the OpenAI 'DALL-E' API.
+* Image Tool
+  * Generate Images: Generate images using the OpenAI Image API.
+  * Supported Models: 'DALL-E'
 * Audio
-  * Transcript Audio: Transcript audio using the OpenAI 'whisper-1' API.
+  * Transcribe Audio: Transcribe audio using the OpenAI Audio API.
+  * Supported Models: 'whisper-1'
 * Chat
-  * Chat using the OpenAI 'gpt-3.5-turbo' API.
+  * Chat: Chat using the OpenAI Chat API.
+  * Ask Blender Operators/Properties: Ask Blender operators/properties from the right-click menu.
+  * Supported Models: 'gpt-3.5-turbo', 'gpt-4', 'gpt-4-32k'
+
+### Features for Future Releases
+
+* Image Tool
+  * Edit Image: Edit images using the OpenAI API.
+* Code Tool
+  * Generate Sample Code: Generate sample codes for Blender operators/properties from the right-click menu.
+  * Execute Code Immediately: Execute code immediately from the prompt/audio.
+* Improve Async Execution
+  * Show the status of the asynchronous exeuction.
 
 ## Tutorials
 
