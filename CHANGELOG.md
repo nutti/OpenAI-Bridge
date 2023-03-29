@@ -4,7 +4,7 @@
 
 ## [Unreleased](https://github.com/nutti/OpenAI-Bridge/compare/v0.2.0...main)
 
-## [Version 0.2.0](https://github.com/nutti/OpenAI-Bridge/compare/v0.1.0...v0.2.0) - 2023.3.XX
+## [Version 0.2.0](https://github.com/nutti/OpenAI-Bridge/compare/v0.1.0...v0.2.0) - 2023.3.29
 
 ### New Features
 
