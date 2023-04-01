@@ -24,18 +24,25 @@ def register():
     bpy.utils.register_class(panel.OPENAI_PT_ChatTool)
     bpy.utils.register_class(panel.OPENAI_PT_ChatPrompt)
     bpy.utils.register_class(panel.OPENAI_PT_ChatLog)
+    bpy.utils.register_class(panel.OPENAI_PT_CodeTool)
+    bpy.utils.register_class(panel.OPENAI_PT_CodeToolPrompt)
+    bpy.utils.register_class(panel.OPENAI_PT_CodeToolHistory)
 
     bpy.utils.register_tool(tool.OPENAI_WST_OpenAIImageTool, separator=True)
     bpy.utils.register_tool(tool.OPENAI_WST_OpenAIAudioTool, separator=True)
-    bpy.utils.register_tool(tool.OPENAI_WST_OpenAIChatTool, separator=True)
+    bpy.utils.register_tool(tool.OPENAI_WST_OpenAIChatTool, separator=True, group=True)
+    bpy.utils.register_tool(tool.OPENAI_WST_OpenAICodeTool, after={tool.OPENAI_WST_OpenAIChatTool.bl_idname})
 
 
 def unregister():
-
+    bpy.utils.unregister_tool(tool.OPENAI_WST_OpenAICodeTool)
     bpy.utils.unregister_tool(tool.OPENAI_WST_OpenAIChatTool)
     bpy.utils.unregister_tool(tool.OPENAI_WST_OpenAIAudioTool)
     bpy.utils.unregister_tool(tool.OPENAI_WST_OpenAIImageTool)
 
+    bpy.utils.unregister_class(panel.OPENAI_PT_CodeToolHistory)
+    bpy.utils.unregister_class(panel.OPENAI_PT_CodeToolPrompt)
+    bpy.utils.unregister_class(panel.OPENAI_PT_CodeTool)
     bpy.utils.unregister_class(panel.OPENAI_PT_ChatLog)
     bpy.utils.unregister_class(panel.OPENAI_PT_ChatPrompt)
     bpy.utils.unregister_class(panel.OPENAI_PT_ChatTool)

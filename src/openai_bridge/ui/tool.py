@@ -91,13 +91,13 @@ class OPENAI_WST_OpenAICodeTool(bpy.types.WorkSpaceTool):
     bl_description = "Code tools"
     bl_space_type = 'VIEW_3D'
     bl_context_mode = 'OBJECT'
-    bl_icon = f"{ICON_DIR}/custom.openai_chat"
+    bl_icon = f"{ICON_DIR}/custom.openai_code"
 
     bl_keymap = (
         (
             OPENAI_OT_Code.bl_idname,
             {"type": 'SPACE', "value": 'PRESS'},
-            {},
+            {"properties": [("input_method", 'TEXT'), ("mode", 'GENERATE'), ("execute_immediately", True)]},
         ),
     )
 
@@ -106,10 +106,8 @@ class OPENAI_WST_OpenAICodeTool(bpy.types.WorkSpaceTool):
         user_prefs = context.preferences
         prefs = user_prefs.addons["openai_bridge"].preferences
 
-        layout.prop(props, "sync")
+        layout.prop(prefs, "async_execution")
 
         layout.separator()
 
-        layout.prop(prefs, "code_tool_model")
         layout.prop(props, "num_conditions")
-        layout.prop(props, "execute_immediately")

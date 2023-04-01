@@ -9,6 +9,7 @@ import uuid
 
 from ..utils.common import (
     get_area_region_space,
+    parse_response_data,
     IMAGE_DATA_DIR,
     CHAT_DATA_DIR,
     CODE_DATA_DIR,
@@ -30,21 +31,21 @@ class OPENAI_OT_ProcessMessage(bpy.types.Operator):
     _timer = None
 
     @classmethod
-    def exec(cls, transaction_id, type, data, options, sync=False, context=None, operator_instance=None):
+    def process(cls, transaction_id, type, data, options, sync=False, context=None, operator_instance=None):
         message = {"transaction_id": transaction_id, "type": type, "data": data, "options": options}
         if sync:
-            cls.sync_exec(context, operator_instance, message)
+            cls.sync_process(context, operator_instance, message)
         else:
-            cls.async_exec(message)
+            cls.async_process(message)
 
     @classmethod
-    def async_exec(cls, message):
+    def async_process(cls, message):
         cls.message_queue_lock.acquire()
         cls.message_queue.append(message)
         cls.message_queue_lock.release()
 
     @classmethod
-    def sync_exec(cls, context, operator_instance, message):
+    def sync_process(cls, context, operator_instance, message):
         cls.process_message_internal(context, operator_instance, message)
 
     @classmethod
@@ -86,50 +87,16 @@ class OPENAI_OT_ProcessMessage(bpy.types.Operator):
             context.scene.openai_chat_tool_props.topic = options["topic"]
             context.scene.openai_chat_tool_props.new_topic = False
         elif msg_type == 'CODE':
-            filepath = data["filepath"]
+            os.makedirs(CODE_DATA_DIR, exist_ok=True)
+            filepath = f"{CODE_DATA_DIR}/{options['code']}.py"
             with open(filepath, "r", encoding="utf-8") as f:
-                text = f.read()
-
-            code_blocks = []
-            in_code_block = False
-            code = ""
-            for l in text.split("\n"):
-                if l.startswith("```"):
-                    if in_code_block:
-                        code_blocks.append(code)
-                        in_code_block = False
-                    else:
-                        code = ""
-                        in_code_block = True
-                else:
-                    if in_code_block:
-                        code += f"{l}\n"
-
-            if options["code"] not in bpy.data.texts:
-                bpy.data.texts.new(options["code"])
-            text_data = bpy.data.texts[options["code"]]
-            text_data.clear()
-            if len(code_blocks) != 0:
-                code = code_blocks[-1]
-                text_data.write(code)
-                if options["execute_immediately"]:
-                    try:
-                        exec(code)
-                    except Exception as e:
-                        error_message = str(e)
-                        context.window_manager.clipboard = error_message
-                        text_data.clear()
-                        text_data.write("Failed to execute the generated code.\n")
-                        text_data.write("The error code is copied to the clipboard.\n\n")
-                        text_data.write(f"[Code]\n{code}\n\n")
-                        text_data.write(f"[Error Message]\n{error_message}\n")
-            else:
-                text_data.clear()
-                text_data.write("Failed to generate code.\nTry Again.\n")
-            # Focus on the code in Text Editor.
-            _, _, space = get_area_region_space(context, 'TEXT_EDITOR', 'WINDOW', 'TEXT_EDITOR')
-            if space is not None:
-                space.text = text_data
+                code_to_execute = f.read()
+            if options["execute_immediately"]:
+                try:
+                    exec(code_to_execute)
+                except Exception as e:
+                    error_key = ErrorStorage.get_error_key('CODE', code_to_execute, 0, 0)
+                    ErrorStorage.store_error(error_key, str(e))
         elif message["type"] == 'ERROR':
             exception = data["exception"]
             operator_instance.report({'WARNING'}, f"Error: {exception}")
@@ -256,9 +223,9 @@ class RequestHandler:
             with open(filepath, "wb") as f:
                 f.write(image_data)
 
-            OPENAI_OT_ProcessMessage.exec(transaction_id, 'IMAGE', {"filepath": filepath}, options, sync=sync, context=context, operator_instance=operator_instance)
+            OPENAI_OT_ProcessMessage.process(transaction_id, 'IMAGE', {"filepath": filepath}, options, sync=sync, context=context, operator_instance=operator_instance)
 
-        OPENAI_OT_ProcessMessage.exec(transaction_id, 'END_OF_TRANSACTION', None, None, sync=sync, context=context, operator_instance=operator_instance)
+        OPENAI_OT_ProcessMessage.process(transaction_id, 'END_OF_TRANSACTION', None, None, sync=sync, context=context, operator_instance=operator_instance)
 
     @classmethod
     def handle_audio_request(cls, api_key, transaction_id, req_data, options, sync, context=None, operator_instance=None):
@@ -272,8 +239,8 @@ class RequestHandler:
         response_data = response.json()
 
         # Post message.
-        OPENAI_OT_ProcessMessage.exec(transaction_id, 'AUDIO', {"text": response_data["text"]}, options, sync=sync, context=context, operator_instance=operator_instance)
-        OPENAI_OT_ProcessMessage.exec(transaction_id, 'END_OF_TRANSACTION', None, None, sync=sync, context=context, operator_instance=operator_instance)
+        OPENAI_OT_ProcessMessage.process(transaction_id, 'AUDIO', {"text": response_data["text"]}, options, sync=sync, context=context, operator_instance=operator_instance)
+        OPENAI_OT_ProcessMessage.process(transaction_id, 'END_OF_TRANSACTION', None, None, sync=sync, context=context, operator_instance=operator_instance)
 
     @classmethod
     def handle_chat_request(cls, api_key, transaction_id, req_data, options, sync, context=None, operator_instance=None):
@@ -316,7 +283,7 @@ class RequestHandler:
             })
             req_data["messages"] = additional_messages + req_data["messages"]
 
-        OPENAI_OT_ProcessMessage.exec(transaction_id, 'CHAT', {}, options, sync=sync, context=context, operator_instance=operator_instance)
+        OPENAI_OT_ProcessMessage.process(transaction_id, 'CHAT', {}, options, sync=sync, context=context, operator_instance=operator_instance)
 
         # Send prompt.
         headers = {
@@ -334,52 +301,11 @@ class RequestHandler:
         chat_file.save()
 
         # Post to message queue.
-        OPENAI_OT_ProcessMessage.exec(transaction_id, 'CHAT', {}, options, sync=sync, context=context, operator_instance=operator_instance)
-        OPENAI_OT_ProcessMessage.exec(transaction_id, 'END_OF_TRANSACTION', None, None, sync=sync, context=context, operator_instance=operator_instance)
+        OPENAI_OT_ProcessMessage.process(transaction_id, 'CHAT', {}, options, sync=sync, context=context, operator_instance=operator_instance)
+        OPENAI_OT_ProcessMessage.process(transaction_id, 'END_OF_TRANSACTION', None, None, sync=sync, context=context, operator_instance=operator_instance)
 
     @classmethod
     def handle_code_request(cls, api_key, transaction_id, req_data, options, sync, context=None, operator_instance=None):
-        user_text = req_data["messages"][0]["content"]
-        condition_texts = []
-        for text in req_data["messages"][1:]:
-            condition_texts.append(text["content"])
-        user_text_data = cls.get_user_text_data(user_text)
-        condition_text_data = cls.get_condition_text_data(condition_texts)
-
-        # Save send text.
-        dirname = f"{CODE_DATA_DIR}/codes"
-        os.makedirs(dirname, exist_ok=True)
-        code = options["code"]
-        filepath = f"{dirname}/{code}.txt"
-        mode = "w" if options["mode"] == 'GENERATE' else "a"
-        with open(filepath, mode) as f:
-            f.write("\n".join(user_text_data))
-            f.write("\n")
-            f.write("---\n")
-            f.write("\n".join(condition_text_data))
-            f.write("\n")
-            f.write("--------------------")
-            f.write("\n" * 2)
-
-        if options["mode"] != 'GENERATE':
-            old_texts = cls.get_old_text_data(filepath)
-            additional_messages = []
-            for text in old_texts:
-                additional_messages.append({
-                    "role": "user",
-                    "content": text["user_data"],
-                })
-                for condition in text["condition_data"]:
-                    additional_messages.append({
-                        "role": "system",
-                        "content": condition,
-                    })
-                additional_messages.append({
-                    "role": "assistant",
-                    "content": text["response_data"]
-                })
-            req_data["messages"] = additional_messages + req_data["messages"]
-
         # Send prompt.
         headers = {
             "Content-Type": "application/json",
@@ -389,20 +315,26 @@ class RequestHandler:
                                  headers=headers, data=json.dumps(req_data))
         response.raise_for_status()
         response_data = response.json()
-
-        # Get text.
         response_text = response_data["choices"][0]["message"]["content"]
 
-        # Save response text.
-        with open(filepath, "a") as f:
-            f.write(response_text)
-            f.write("\n" * 2)
-            f.write("====================\n")
-            f.write("\n")
+        # Get code body.
+        sections = parse_response_data(response_text)
+        code_sections = []
+        for section in sections:
+            if section["kind"] == 'CODE':
+                code_sections.append(section)
+        if len(code_sections) != 1:
+            raise ValueError(f"Number of code section must be 1 but {len(sections)}")
+        code_body = code_sections[0]["body"]
+
+        os.makedirs(CODE_DATA_DIR, exist_ok=True)
+        filepath = f"{CODE_DATA_DIR}/{options['code']}.py"
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write(code_body)
 
         # Post to message queue.
-        OPENAI_OT_ProcessMessage.exec(transaction_id, 'CODE', {"filepath": filepath}, options, sync=sync, context=context, operator_instance=operator_instance)
-        OPENAI_OT_ProcessMessage.exec(transaction_id, 'END_OF_TRANSACTION', None, None, sync=sync, context=context, operator_instance=operator_instance)
+        OPENAI_OT_ProcessMessage.process(transaction_id, 'CODE', {}, options, sync=sync, context=context, operator_instance=operator_instance)
+        OPENAI_OT_ProcessMessage.process(transaction_id, 'END_OF_TRANSACTION', None, None, sync=sync, context=context, operator_instance=operator_instance)
 
     @classmethod
     def handle_request(cls, request, sync=False, context=None, operator_instance=None):
@@ -441,8 +373,8 @@ class RequestHandler:
                 cls.handle_request(request)
 
             except Exception as e:
-                OPENAI_OT_ProcessMessage.exec(transaction_id, 'ERROR', {"exception": e}, None, sync=False)
-                OPENAI_OT_ProcessMessage.exec(transaction_id, 'END_OF_TRANSACTION', None, None, sync=False)
+                OPENAI_OT_ProcessMessage.process(transaction_id, 'ERROR', {"exception": e}, None, sync=False)
+                OPENAI_OT_ProcessMessage.process(transaction_id, 'END_OF_TRANSACTION', None, None, sync=False)
 
 
 def sync_request(api_key, type, data, options, context, operator_instance):

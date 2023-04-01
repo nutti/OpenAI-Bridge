@@ -1,12 +1,16 @@
 import bpy
-import textwrap
+import glob
+import os
 
 from ..op import image
 from ..op import audio
 from ..op import chat
+from ..op import code
 from ..utils.common import (
     ChatTextFile,
     parse_response_data,
+    CODE_DATA_DIR,
+    draw_data_on_ui_layout,
 )
 from ..utils import error_storage
 
@@ -316,7 +320,11 @@ class OPENAI_PT_ChatTool(bpy.types.Panel):
         if props.new_topic:
             layout.prop(props, "new_topic_name", text="")
         else:
-            layout.prop(props, "topic", text="")
+            row = layout.row(align=True)
+            row.prop(props, "topic", text="")
+            op = row.operator(chat.OPENAI_OT_RemoveChat.bl_idname, text="", icon='TRASH')
+            if props.topic:
+                op.topic = props.topic
 
 
 class OPENAI_PT_ChatPrompt(bpy.types.Panel):
@@ -375,21 +383,6 @@ class OPENAI_PT_ChatLog(bpy.types.Panel):
 
         layout.label(text="", icon='WORDWRAP_ON')
 
-    def draw_data(self, context, layout, lines):
-        user_prefs = context.preferences
-        prefs = user_prefs.addons["openai_bridge"].preferences
-
-        wrapped_length = int(context.region.width * prefs.chat_log_wrap_width)
-        wrapper = textwrap.TextWrapper(width=wrapped_length)
-        col = layout.column(align=True)
-        for l in lines:
-            wrappeed_lines = wrapper.wrap(text=l)
-            for wl in wrappeed_lines:
-                col.scale_y = 0.8
-                col.label(text=wl)
-            if len(wrappeed_lines) == 0:
-                col.label(text="")
-
     def draw(self, context):
         layout = self.layout
         sc = context.scene
@@ -426,14 +419,14 @@ class OPENAI_PT_ChatLog(bpy.types.Panel):
             row = layout.row()
             row.label(text="", icon='USER')
             col = row.column()
-            self.draw_data(context, col, lines)
+            draw_data_on_ui_layout(context, col, lines)
 
             # Draw condition data.
             if len(condition_data) != 0:
                 row = layout.row()
                 row.label(text="", icon='MODIFIER')
                 col = row.column()
-                self.draw_data(context, col, condition_data)
+                draw_data_on_ui_layout(context, col, condition_data)
 
             layout.separator()
 
@@ -447,11 +440,11 @@ class OPENAI_PT_ChatLog(bpy.types.Panel):
                 lines = section["body"].split("\n")
                 if section["kind"] == 'TEXT':
                     c = col.column()
-                    self.draw_data(context, c, lines)
+                    draw_data_on_ui_layout(context, c, lines)
                 elif section["kind"] == 'CODE':
                     r = col.row(align=True)
                     c = r.box().column(align=True)
-                    self.draw_data(context, c, lines)
+                    draw_data_on_ui_layout(context, c, lines)
                     c = r.column(align=True)
                     op = c.operator(chat.OPENAI_OT_RunChatCode.bl_idname, icon='PLAY', text="")
                     op.topic = props.topic
@@ -468,13 +461,13 @@ class OPENAI_PT_ChatLog(bpy.types.Panel):
                     op.code_index = code_index
                     op.target = 'TEXT'
 
-                    error_key = error_storage.get_error_key(props.topic, part, code_index)
+                    error_key = error_storage.get_error_key('CHAT', props.topic, part, code_index)
                     error_message = error_storage.get_error(error_key)
                     if error_message:
                         r = col.row(align=True)
                         c = r.column(align=True)
                         c.alert = True
-                        self.draw_data(context, c, [error_message])
+                        draw_data_on_ui_layout(context, c, [error_message])
                         c = r.column(align=True)
                         op = c.operator(chat.OPENAI_OT_CopyChatCodeError.bl_idname, icon='DUPLICATE', text="")
                         op.topic = props.topic
@@ -484,3 +477,105 @@ class OPENAI_PT_ChatLog(bpy.types.Panel):
                     code_index += 1
 
             layout.separator(factor=2.0)
+
+
+class OPENAI_PT_CodeTool(bpy.types.Panel):
+
+    bl_region_type = 'UI'
+    bl_space_type = 'VIEW_3D'
+    bl_category = "OpenAI"
+    bl_label = "Code Tool"
+
+    def draw_header(self, context):
+        sc = context.scene
+        layout = self.layout
+
+        layout.label(text="", icon_value=sc.openai_icon_collection["openai_base"].icon_id)
+
+    def draw(self, context):
+        pass
+
+
+class OPENAI_PT_CodeToolPrompt(bpy.types.Panel):
+
+    bl_region_type = 'UI'
+    bl_space_type = 'VIEW_3D'
+    bl_category = "OpenAI"
+    bl_label = "Prompt"
+    bl_parent_id = "OPENAI_PT_CodeTool"
+
+    def draw_header(self, context):
+        layout = self.layout
+
+        layout.label(text="", icon='CONSOLE')
+
+    def draw(self, context):
+        layout = self.layout
+        sc = context.scene
+        props = sc.openai_code_tool_props
+
+        row = layout.row(align=True)
+        row.operator_context = 'EXEC_DEFAULT'
+        row.prop(props, "prompt", text="")
+        op = row.operator(code.OPENAI_OT_Code.bl_idname, icon='PLAY', text="")
+        op.input_method = 'TEXT'
+        op.prompt = props.prompt
+        op.mode = 'GENERATE'
+        op.execute_immediately = True
+        op.sync = False
+        op.num_conditions = len(sc.openai_code_tool_conditions)
+        for i, condition in enumerate(sc.openai_code_tool_conditions):
+            item = op.conditions.add()
+            item.condition = condition.condition
+
+        row = layout.row()
+        row.alignment = 'LEFT'
+        row.label(text="Conditions:")
+        row.operator(code.OPENAI_OT_AddCodeCondition.bl_idname, text="", icon="PLUS")
+        for i, condition in enumerate(sc.openai_code_tool_conditions):
+            row = layout.row()
+            row.prop(condition, "condition", text=f"{i}")
+            op = row.operator(code.OPENAI_OT_RemoveCodeCondition.bl_idname, text="", icon="CANCEL")
+            op.index_to_remove = i
+
+
+class OPENAI_PT_CodeToolHistory(bpy.types.Panel):
+
+    bl_region_type = 'UI'
+    bl_space_type = 'VIEW_3D'
+    bl_category = "OpenAI"
+    bl_label = "History"
+    bl_parent_id = "OPENAI_PT_CodeTool"
+
+    def draw_header(self, context):
+        layout = self.layout
+
+        layout.label(text="", icon='WORDWRAP_ON')
+
+    def draw(self, context):
+        layout = self.layout
+
+        code_files = glob.glob(f"{CODE_DATA_DIR}/**/*.py", recursive=True)
+        for file in code_files:
+            code_name = os.path.splitext(os.path.basename(file))[0]
+            error_key = error_storage.get_error_key('CODE', code_name, 0, 0)
+            error_message = error_storage.get_error(error_key)
+            row = layout.row(align=True)
+            op = row.operator(code.OPENAI_OT_RunCode.bl_idname, text=code_name)
+            op.code = code_name
+            op = row.operator(code.OPENAI_OT_CopyCode.bl_idname, text="", icon='DUPLICATE')
+            op.code = code_name
+            op.target = 'CLIPBOARD'
+            op = row.operator(code.OPENAI_OT_CopyCode.bl_idname, text="", icon='TEXT')
+            op.code = code_name
+            op.target = 'TEXT'
+            op = row.operator(code.OPENAI_OT_RemoveCode.bl_idname, text="", icon='TRASH')
+            op.code = code_name
+            if error_message:
+                r = layout.row(align=True)
+                c = r.column(align=True)
+                c.alert = True
+                draw_data_on_ui_layout(context, c, [error_message])
+                c = r.column(align=True)
+                op = c.operator(code.OPENAI_OT_CopyCodeError.bl_idname, icon='DUPLICATE', text="")
+                op.code = code_name

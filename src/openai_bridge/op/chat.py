@@ -144,15 +144,13 @@ class OPENAI_OT_AskPropertyUsage(bpy.types.Operator):
         print(f"Sent Request: f{request}")
         return {'FINISHED'}
 
-        return {'FINISHED'}
-
 
 class OPENAI_OT_AddChatCondition(bpy.types.Operator):
 
     bl_idname = "system.openai_add_chat_condition"
     bl_description = "Add chat condition"
     bl_label = "Add Chat Condition"
-    bl_options = {'REGISTER', 'UNDO'}
+    bl_options = {'REGISTER'}
 
     def execute(self, context):
         sc = context.scene
@@ -167,7 +165,7 @@ class OPENAI_OT_RemoveChatCondition(bpy.types.Operator):
     bl_idname = "system.openai_remove_chat_condition"
     bl_description = "Remove chat condition"
     bl_label = "Remove Chat Condition"
-    bl_options = {'REGISTER', 'UNDO'}
+    bl_options = {'REGISTER'}
 
     index_to_remove: bpy.props.IntProperty(
         name="Index to Remove",
@@ -188,7 +186,7 @@ class OPENAI_OT_CopyChatLog(bpy.types.Operator):
     bl_idname = "system.openai_copy_chat_log"
     bl_description = "Copy chat log"
     bl_label = "Copy Chat Log"
-    bl_options = {'REGISTER', 'UNDO'}
+    bl_options = {'REGISTER'}
 
     topic: bpy.props.StringProperty(
         name="Topic",
@@ -264,7 +262,7 @@ class OPENAI_OT_CopyChatCode(bpy.types.Operator):
     bl_idname = "system.openai_copy_chat_code"
     bl_description = "Copy chat code"
     bl_label = "Copy Chat Code"
-    bl_options = {'REGISTER', 'UNDO'}
+    bl_options = {'REGISTER'}
 
     topic: bpy.props.StringProperty(
         name="Topic",
@@ -320,7 +318,7 @@ class OPENAI_OT_RunChatCode(bpy.types.Operator):
     bl_idname = "system.openai_run_chat_code"
     bl_description = "Run chat code"
     bl_label = "Run Chat Code"
-    bl_options = {'REGISTER', 'UNDO'}
+    bl_options = {'REGISTER'}
 
     topic: bpy.props.StringProperty(
         name="Topic",
@@ -348,7 +346,7 @@ class OPENAI_OT_RunChatCode(bpy.types.Operator):
             self.report({'WARNING'}, "Failed to find the target code")
             return {'CANCELLED'}
 
-        error_key = error_storage.get_error_key(self.topic, self.part, self.code_index)
+        error_key = error_storage.get_error_key('CHAT', self.topic, self.part, self.code_index)
         try:
             exec(code_to_execute)
         except Exception as e:
@@ -361,12 +359,29 @@ class OPENAI_OT_RunChatCode(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class OPENAI_OT_RemoveChat(bpy.types.Operator):
+
+    bl_idname = "system.openai_remove_chat"
+    bl_description = "Remove chat"
+    bl_label = "Remove Chat"
+    bl_options = {'REGISTER'}
+
+    topic: bpy.props.StringProperty(
+        name="Code",
+    )
+
+    def execute(self, context):
+        ChatTextFile.remove(self.topic)
+
+        return {'FINISHED'}
+
+
 class OPENAI_OT_CopyChatCodeError(bpy.types.Operator):
 
     bl_idname = "system.openai_copy_chat_code_error"
     bl_description = "Copy chat code error"
     bl_label = "Copy Chat Code Error"
-    bl_options = {'REGISTER', 'UNDO'}
+    bl_options = {'REGISTER'}
 
     topic: bpy.props.StringProperty(
         name="Topic",
@@ -385,7 +400,7 @@ class OPENAI_OT_CopyChatCodeError(bpy.types.Operator):
     )
 
     def execute(self, context):
-        error_key = error_storage.get_error_key(self.topic, self.part, self.code_index)
+        error_key = error_storage.get_error_key('CHAT', self.topic, self.part, self.code_index)
 
         error_message = error_storage.get_error(error_key)
         if error_message is None:

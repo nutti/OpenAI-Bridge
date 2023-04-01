@@ -1,5 +1,6 @@
 import os
 import json
+import textwrap
 
 DATA_DIR = f"{os.path.dirname(__file__)}/../_data"
 IMAGE_DATA_DIR = f"{DATA_DIR}/image"
@@ -39,6 +40,10 @@ class ChatTextFile:
     def __init__(self):
         self.filepath = None
         self.json_raw = {}
+
+    @classmethod
+    def remove(cls, topic):
+        os.remove(f"{CHAT_DATA_DIR}/topics/{topic}.json")
 
     def save(self):
         with open(self.filepath, "w", encoding="utf-8") as f:
@@ -135,3 +140,19 @@ def get_code_from_response_data(response_data, code_index):
         return None
 
     return codes[code_index]
+
+
+def draw_data_on_ui_layout(context, layout, lines):
+    user_prefs = context.preferences
+    prefs = user_prefs.addons["openai_bridge"].preferences
+
+    wrapped_length = int(context.region.width * prefs.chat_log_wrap_width)
+    wrapper = textwrap.TextWrapper(width=wrapped_length)
+    col = layout.column(align=True)
+    for l in lines:
+        wrappeed_lines = wrapper.wrap(text=l)
+        for wl in wrappeed_lines:
+            col.scale_y = 0.8
+            col.label(text=wl)
+        if len(wrappeed_lines) == 0:
+            col.label(text="")

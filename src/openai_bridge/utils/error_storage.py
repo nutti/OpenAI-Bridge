@@ -2,8 +2,8 @@ class ErrorStorage:
     error_list = {}
 
 
-def get_error_key(topic, part, code_index):
-    return f"{topic}_{part}_{code_index}"
+def get_error_key(kind, topic, part, code_index):
+    return f"{kind}_{topic}_{part}_{code_index}"
 
 
 def store_error(key, error):

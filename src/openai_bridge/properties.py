@@ -211,6 +211,40 @@ class OPENAI_ChatToolConditions(bpy.types.PropertyGroup):
     )
 
 
+class OPENAI_CodeToolProperties(bpy.types.PropertyGroup):
+    prompt: bpy.props.StringProperty(
+        name="Prompt",
+    )
+    input_method: bpy.props.EnumProperty(
+        name="Input",
+        items=[
+            ('TEXT', "Text", "Input from text"),
+            ('AUDIO', "Audio", "Input from audio"),
+        ],
+        default='TEXT',
+    )
+    num_conditions: bpy.props.IntProperty(
+        name="Number of Conditions",
+        default=1,
+        min=0,
+        max=10,
+    )
+    mode: bpy.props.EnumProperty(
+        name="Mode",
+        items=[
+            ('GENERATE', "Generate", "Generate the code from the prompt"),
+            ('FIX', "Fix", "Fix the code from the error message"),
+        ],
+        default='GENERATE',
+    )
+
+
+class OPENAI_CodeToolConditions(bpy.types.PropertyGroup):
+    condition: bpy.props.StringProperty(
+        name="Condition",
+    )
+
+
 def register_properties():
     scene = bpy.types.Scene
 
@@ -219,6 +253,8 @@ def register_properties():
     bpy.utils.register_class(OPENAI_AudioToolAudioProperties)
     bpy.utils.register_class(OPENAI_ChatToolProperties)
     bpy.utils.register_class(OPENAI_ChatToolConditions)
+    bpy.utils.register_class(OPENAI_CodeToolProperties)
+    bpy.utils.register_class(OPENAI_CodeToolConditions)
 
     scene.openai_icon_collection = bpy.utils.previews.new()
     scene.openai_icon_collection.load("openai_base", f"{ICON_DIR}/openai_base.png", 'IMAGE')
@@ -254,12 +290,24 @@ def register_properties():
         type=OPENAI_ChatToolConditions,
     )
 
+    # Properties for Code Tool.
+    scene.openai_code_tool_props = bpy.props.PointerProperty(
+        type=OPENAI_CodeToolProperties,
+    )
+    scene.openai_code_tool_conditions = bpy.props.CollectionProperty(
+        name="Conditions",
+        type=OPENAI_CodeToolConditions,
+    )
+
 
 def unregister_properties():
     scene = bpy.types.Scene
 
     bpy.utils.previews.remove(scene.openai_icon_collection)
     bpy.utils.previews.remove(scene.openai_image_tool_image_collection)
+
+    del scene.openai_code_tool_conditions
+    del scene.openai_code_tool_props
 
     del scene.openai_chat_tool_conditions
     del scene.openai_chat_tool_props
@@ -274,6 +322,8 @@ def unregister_properties():
 
     del scene.openai_icon_collection
 
+    bpy.utils.unregister_class(OPENAI_CodeToolConditions)
+    bpy.utils.unregister_class(OPENAI_CodeToolProperties)
     bpy.utils.unregister_class(OPENAI_ChatToolConditions)
     bpy.utils.unregister_class(OPENAI_ChatToolProperties)
     bpy.utils.unregister_class(OPENAI_AudioToolAudioProperties)
