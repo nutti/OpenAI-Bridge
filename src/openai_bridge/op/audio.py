@@ -118,7 +118,11 @@ class OPENAI_OT_TranscribeSoundStrip(bpy.types.Operator):
         if not prefs.async_execution:
             sync_request(api_key, 'AUDIO', request, options, context, self)
         else:
-            async_request(api_key, 'AUDIO', request, options)
+            transaction_data = {
+                "type": 'AUDIO',
+                "title": filepath[0:32],
+            }
+            async_request(api_key, 'AUDIO', request, options, transaction_data)
             # Run Message Processing Timer if it has not launched yet.
             bpy.ops.system.openai_process_message()
 
@@ -198,7 +202,11 @@ class OPENAI_OT_TranscribeAudio(bpy.types.Operator):
         if not prefs.async_execution:
             sync_request(api_key, 'AUDIO', request, options, context, self)
         else:
-            async_request(api_key, 'AUDIO', request, options)
+            transaction_data = {
+                "type": 'AUDIO',
+                "title": self.audio_filepath[0:32],
+            }
+            async_request(api_key, 'AUDIO', request, options, transaction_data)
             # Run Message Processing Timer if it has not launched yet.
             bpy.ops.system.openai_process_message()
 

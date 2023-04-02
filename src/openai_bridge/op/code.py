@@ -330,7 +330,11 @@ Error: {self.error_message}"""
         if self.sync:
             sync_request(api_key, 'CODE', request, options, context, self)
         else:
-            async_request(api_key, 'CODE', request, options)
+            transaction_data = {
+                "type": 'CODE',
+                "title": options["code"][0:32],
+            }
+            async_request(api_key, 'CODE', request, options, transaction_data)
             # Run Message Processing Timer if it has not launched yet.
             bpy.ops.system.openai_process_message()
 

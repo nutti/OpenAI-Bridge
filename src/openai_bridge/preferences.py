@@ -29,6 +29,17 @@ class OPENAI_Preferences(bpy.types.AddonPreferences):
         description="Execute operations asynchronously",
         default=True,
     )
+    show_request_status: bpy.props.BoolProperty(
+        name="Show Request Status",
+        description="Show Request Status",
+        default=True,
+    )
+    request_status_location: bpy.props.IntVectorProperty(
+        name="Request Status Location",
+        description="Location of the request status",
+        size=2,
+        default=(30, 30),
+    )
 
     audio_tool_model: bpy.props.EnumProperty(
         name="Audio Tool Model",
@@ -85,6 +96,11 @@ class OPENAI_Preferences(bpy.types.AddonPreferences):
             row = col.row()
             row.alignment = 'LEFT'
             row.prop(self, "async_execution")
+            row = col.row()
+            if self.async_execution:
+                row.prop(self, "show_request_status", text="Show Status")
+                if self.show_request_status:
+                    row.prop(self, "request_status_location", expand=True, text="Location")
         elif self.category == 'IMAGE_TOOL':
             layout.label(text="No configuration")
         elif self.category == 'AUDIO_TOOL':

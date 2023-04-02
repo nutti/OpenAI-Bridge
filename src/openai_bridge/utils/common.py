@@ -45,6 +45,14 @@ class ChatTextFile:
     def remove(cls, topic):
         os.remove(f"{CHAT_DATA_DIR}/topics/{topic}.json")
 
+    def new(self, topic):
+        self.filepath = f"{CHAT_DATA_DIR}/topics/{topic}.json"
+        self.json_raw = {
+            "topic": {
+                "parts": []
+            }
+        }
+
     def save(self):
         with open(self.filepath, "w", encoding="utf-8") as f:
             json.dump(self.json_raw, f, ensure_ascii=False, indent=4, sort_keys=True, separators=(",", ": "))

@@ -1,4 +1,7 @@
 import bpy
+import blf
+import gpu
+from gpu_extras.batch import batch_for_shader
 import json
 import os
 import requests
@@ -6,6 +9,7 @@ import threading
 import time
 from urllib.parse import urlparse
 import uuid
+from collections import OrderedDict
 
 from ..utils.common import (
     get_area_region_space,
@@ -25,10 +29,16 @@ class OPENAI_OT_ProcessMessage(bpy.types.Operator):
 
     message_queue_lock = threading.Lock()
     message_queue = []
+    section_stats = {
+        "transaction_total": 0,
+        "transaction_consumed_total": 0,
+    }
 
-    transaction_ids = set()
+    transaction_ids = OrderedDict()
     transaction_ids_lock = threading.Lock()
+
     _timer = None
+    _draw_cb = {"space_data": None, "handler": None}
 
     @classmethod
     def process(cls, transaction_id, type, data, options, sync=False, context=None, operator_instance=None):
@@ -101,6 +111,7 @@ class OPENAI_OT_ProcessMessage(bpy.types.Operator):
             exception = data["exception"]
             operator_instance.report({'WARNING'}, f"Error: {exception}")
         elif message["type"] == 'END_OF_TRANSACTION':
+            cls.section_stats["transaction_consumed_total"] += 1
             return transaction_id
 
         return None
@@ -130,27 +141,108 @@ class OPENAI_OT_ProcessMessage(bpy.types.Operator):
             if msg_key is not None:
                 cls.transaction_ids_lock.acquire()
                 assert msg_key in cls.transaction_ids
-                cls.transaction_ids.remove(msg_key)
+                del cls.transaction_ids[msg_key]
                 if len(cls.transaction_ids) == 0:
                     wm = context.window_manager
                     wm.event_timer_remove(cls._timer)
                     cls._timer = None
+                    if cls._draw_cb["space_data"] is not None and cls._draw_cb["handler"] is not None:
+                        cls._draw_cb["space_data"].draw_handler_remove(cls._draw_cb["handler"], 'WINDOW')
+
                     cls.transaction_ids_lock.release()
                     print("Terminated Message Processing Timer")
                     return {'FINISHED'}
                 cls.transaction_ids_lock.release()
 
+            context.area.tag_redraw()
+
         return {'PASS_THROUGH'}
+
+    @classmethod
+    def draw_status(cls, context):
+        user_prefs = context.preferences
+        prefs = user_prefs.addons["openai_bridge"].preferences
+
+        font_id = 0
+
+        base_x = prefs.request_status_location[0]
+        base_y = prefs.request_status_location[1]
+
+        # Draw background.
+        original_state = gpu.state.blend_get()
+        gpu.state.blend_set('ALPHA')
+        rect_width = 250.0
+        rect_height = 180.0
+        vertex_data = {
+            "pos": [
+                [base_x, base_y],
+                [base_x, base_y + rect_height],
+                [base_x + rect_width, base_y + rect_height],
+                [base_x + rect_width, base_y],
+            ]
+        }
+        index_data = [
+            [0, 1, 2],
+            [2, 3, 0]
+        ]
+        shader = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
+        batch = batch_for_shader(shader, 'TRIS', vertex_data, indices=index_data)
+        shader.bind()
+        shader.uniform_float("color", [0.0, 0.0, 0.0, 0.6])
+        batch.draw(shader)
+        gpu.state.blend_set(original_state)
+
+        blf.color(font_id, 1.0, 1.0, 0.0, 1.0)
+
+        # Draw title.
+        blf.position(font_id, base_x + 10.0, base_y + 150.0, 0)
+        blf.size(font_id, 16)
+        blf.draw(font_id, "Processing Requests ...")
+
+        # Draw rest transactions.
+        blf.position(font_id, base_x + 10.0, base_y + 120.0, 0)
+        blf.size(font_id, 12)
+        blf.draw(font_id, f"({cls.section_stats['transaction_consumed_total']}/{cls.section_stats['transaction_total']})")
+
+        # Draw process transaction.
+        count = 0
+        for item in cls.transaction_ids.values():
+            if count >= 5:
+                break
+            ts_type = item["type"]
+            ts_title = item["title"]
+            blf.position(font_id, base_x + 10.0, base_y + 100.0 - count * 20.0, 0)
+            blf.draw(font_id, f"[{ts_type}] {ts_title}")
+            count += 1
 
     def execute(self, context):
         cls = self.__class__
         wm = context.window_manager
+        user_prefs = context.preferences
+        prefs = user_prefs.addons["openai_bridge"].preferences
+
+        cls.section_stats["transaction_total"] += 1
 
         if cls._timer:
             return {'FINISHED'}
 
+        # Initialize statistics.
+        cls.section_stats["transaction_total"] = 1
+        cls.section_stats["transaction_consumed_total"] = 0
+
         cls._timer = wm.event_timer_add(0.1, window=context.window)
         wm.modal_handler_add(self)
+        if prefs.show_request_status:
+            if context.space_data.type in ('VIEW_3D', 'IMAGE_EDITOR', 'SEQUENCE_EDITOR', 'TEXT_EDITOR'):
+                cls._draw_cb["space_data"] = context.space_data
+                cls._draw_cb["handler"] = context.space_data.draw_handler_add(cls.draw_status, (context, ), 'WINDOW', 'POST_PIXEL')
+            else:
+                cls._draw_cb["space_data"] = bpy.types.SpaceView3D
+                cls._draw_cb["handler"] = bpy.types.SpaceView3D.draw_handler_add(cls.draw_status, (context, ), 'WINDOW', 'POST_PIXEL')
+        else:
+            cls._draw_cb["space_data"] = None
+            cls._draw_cb["handler"] = None
+
         print("Launched Message Processing Timer")
 
         return {'RUNNING_MODAL'}
@@ -255,7 +347,10 @@ class RequestHandler:
         topic = options["topic"]
 
         chat_file = ChatTextFile()
-        chat_file.load_from_topic(topic)
+        if options["new_topic"]:
+            chat_file.new(topic)
+        else:
+            chat_file.load_from_topic(topic)
         # Response data will be added later
         chat_file.add_part(user_text, condition_texts, "")
         chat_file.save()
@@ -382,10 +477,10 @@ def sync_request(api_key, type, data, options, context, operator_instance):
     RequestHandler.handle_request(request, sync=True, context=context, operator_instance=operator_instance)
 
 
-def async_request(api_key, type, data, options):
+def async_request(api_key, type, data, options, transaction_data):
     transaction_id = uuid.uuid4()
     OPENAI_OT_ProcessMessage.transaction_ids_lock.acquire()
-    OPENAI_OT_ProcessMessage.transaction_ids.add(transaction_id)
+    OPENAI_OT_ProcessMessage.transaction_ids[transaction_id] = transaction_data
     OPENAI_OT_ProcessMessage.transaction_ids_lock.release()
 
     request = [api_key, transaction_id, type, data, options]

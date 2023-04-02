@@ -68,7 +68,11 @@ class OPENAI_OT_AskOperatorUsage(bpy.types.Operator):
         if not prefs.async_execution:
             sync_request(api_key, 'CHAT', request, options, context, self)
         else:
-            async_request(api_key, 'CHAT', request, options)
+            transaction_data = {
+                "type": 'CHAT',
+                "title": options["topic"][0:32],
+            }
+            async_request(api_key, 'CHAT', request, options, transaction_data)
             # Run Message Processing Timer if it has not launched yet.
             bpy.ops.system.openai_process_message()
 
@@ -137,7 +141,11 @@ class OPENAI_OT_AskPropertyUsage(bpy.types.Operator):
         if not prefs.async_execution:
             sync_request(api_key, 'CHAT', request, options, context, self)
         else:
-            async_request(api_key, 'CHAT', request, options)
+            transaction_data = {
+                "type": 'CHAT',
+                "title": options["topic"][0:32],
+            }
+            async_request(api_key, 'CHAT', request, options, transaction_data)
             # Run Message Processing Timer if it has not launched yet.
             bpy.ops.system.openai_process_message()
 
@@ -535,7 +543,11 @@ class OPENAI_OT_Chat(bpy.types.Operator):
         if not prefs.async_execution:
             sync_request(api_key, 'CHAT', request, options, context, self)
         else:
-            async_request(api_key, 'CHAT', request, options)
+            transaction_data = {
+                "type": 'CHAT',
+                "title": options["topic"][0:32],
+            }
+            async_request(api_key, 'CHAT', request, options, transaction_data)
             # Run Message Processing Timer if it has not launched yet.
             bpy.ops.system.openai_process_message()
 

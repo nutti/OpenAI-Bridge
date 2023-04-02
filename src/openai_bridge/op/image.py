@@ -135,7 +135,11 @@ class OPENAI_OT_GeneateImage(bpy.types.Operator):
         if not prefs.async_execution:
             sync_request(api_key, 'IMAGE', request, options, context, self)
         else:
-            async_request(api_key, 'IMAGE', request, options)
+            transaction_data = {
+                "type": 'IMAGE',
+                "title": options["image_name"][0:32],
+            }
+            async_request(api_key, 'IMAGE', request, options, transaction_data)
             # Run Message Processing Timer if it has not launched yet.
             bpy.ops.system.openai_process_message()
 
