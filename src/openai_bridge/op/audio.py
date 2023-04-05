@@ -28,7 +28,9 @@ class OPENAI_OT_TranscribeSoundStrip(bpy.types.Operator):
     language: bpy.props.EnumProperty(
         name="Language",
         items=[
-            ('en', "English", "English"),       # TODO: Add more languages
+            ('en', "English", "English"),
+            ('ja', "Japanese", "Japanese"),
+            # TODO: Add more languages
         ],
         default='en',
     )

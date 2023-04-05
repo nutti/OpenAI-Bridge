@@ -441,7 +441,7 @@ class RequestHandler:
             "prompt": (None, ""),
             "response_format": (None, "json"),
             "temperature": (None, "0.0"),
-            "language": (None, "en"),
+            "language": (None, options["audio_language"]),
         }
         audio_headers = {
             "Authorization": f"Bearer {api_key}"

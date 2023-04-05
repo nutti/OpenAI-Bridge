@@ -206,7 +206,7 @@ class OPENAI_OT_CodeFromAudio(bpy.types.Operator):
         # Draw background.
         original_state = gpu.state.blend_get()
         gpu.state.blend_set('ALPHA')
-        rect_width = 250.0
+        rect_width = 400.0
         rect_height = 180.0
         vertex_data = {
             "pos": [
@@ -227,11 +227,20 @@ class OPENAI_OT_CodeFromAudio(bpy.types.Operator):
         batch.draw(shader)
         gpu.state.blend_set(original_state)
 
+        str_to_draw = ""
+        if cls._recorder:
+            if cls._recorder.get_recording_status() == 'WAIT_RECORDING':
+                str_to_draw = "Wait Recording ..."
+            elif cls._recorder.get_recording_status() == 'RECORDING':
+                str_to_draw = "Recording ..."
+            elif cls._recorder.get_recording_status() in ('FINISHED', 'ABORTED', 'TERMINATED'):
+                str_to_draw = "Finished"
+
         blf.color(font_id, 0.8, 0.8, 0.8, 1.0)
-        size = blf.dimensions(font_id, "Recording ...")
-        blf.position(font_id, center_x - size[0] - 40.0, center_y - size[1] / 2, 0.0)
         blf.size(font_id, 32)
-        blf.draw(font_id, "Recording ...")
+        size = blf.dimensions(font_id, str_to_draw)
+        blf.position(font_id, center_x - size[0] / 2, center_y - size[1] / 2 + 5.0, 0.0)
+        blf.draw(font_id, str_to_draw)
 
     def send_request(self, context, record_filename):
         user_prefs = context.preferences
@@ -260,6 +269,7 @@ class OPENAI_OT_CodeFromAudio(bpy.types.Operator):
         options = {
             "audio_file": record_filename,
             "audio_model": prefs.audio_tool_model,
+            "audio_language": prefs.code_tool_audio_language,
             "mode": 'GENERATE',
             "execute_immediately": True,
         }
@@ -294,7 +304,7 @@ class OPENAI_OT_CodeFromAudio(bpy.types.Operator):
         cls = self.__class__
 
         if event.type == 'ESC':
-            cls._recorder.stop_record()
+            cls._recorder.abort_recording()
 
             self.finalize(context)
             context.area.tag_redraw()

@@ -28,6 +28,7 @@ class OPENAI_Preferences(bpy.types.AddonPreferences):
             ('IMAGE_TOOL', "Image Tool", "Image tool configuration"),
             ('AUDIO_TOOL', "Audio Tool", "Audio tool configuration"),
             ('CHAT_TOOL', "Chat Tool", "Chat tool configuration"),
+            ('CODE_TOOL', "Code Tool", "Code tool configuration"),
         ],
     )
 
@@ -94,6 +95,15 @@ class OPENAI_Preferences(bpy.types.AddonPreferences):
             ("gpt-4-32k", "gpt-4-32k", "gpt-4-32k"),
         ],
         default="gpt-3.5-turbo",
+    )
+    code_tool_audio_language: bpy.props.EnumProperty(
+        name="Code Tool Audio Language",
+        items=[
+            ('en', "English", "English"),
+            ('ja', "Japanese", "Japanese"),
+            # TODO: Add more languages
+        ],
+        default='en',
     )
 
     audio_record_format: bpy.props.EnumProperty(
@@ -196,3 +206,13 @@ class OPENAI_Preferences(bpy.types.AddonPreferences):
             row = col.row()
             row.alignment = 'LEFT'
             row.prop(self, "chat_log_wrap_width")
+        elif self.category == 'CODE_TOOL':
+            col = layout.column()
+            row = col.row()
+            row.alignment = 'LEFT'
+            row.prop(self, "code_tool_model")
+            col.separator()
+            col.label(text="Audio:")
+            row = col.row()
+            row.alignment = 'LEFT'
+            row.prop(self, "code_tool_audio_language", text="Language")

@@ -34,7 +34,10 @@ class AudioRecorder:
         self.silence_threshold = silence_threshold
         self.silence_duration_limit = silence_duration_limit
         self.record_thread = None
-        self.is_recording = False
+        self.recording_status = 'INIT'
+
+    def get_recording_status(self):
+        return self.recording_status
 
     def record_internal(self):
         print(f"Open the audio stream... (Format: {self.format}, Channels: {self.channels}, Rate: {self.rate}, Chunk: {self.chunk_size})")
@@ -42,33 +45,43 @@ class AudioRecorder:
         stream = self.audio.open(format=self.format, channels=self.channels,
                                  rate=self.rate, input=True, frames_per_buffer=self.chunk_size)
 
-        print("Recording started...")
+        print("Wait recording...")
 
         # Record the audio and detect silence
         self.frames = []
-        self.is_recording = True
+        self.recording_status = 'WAIT_RECORDING'
         silence_counter = 0
-        while self.is_recording:
+        while self.recording_status in ('RECORDING', 'WAIT_RECORDING'):
             data = stream.read(self.chunk_size)
-            self.frames.append(data)
 
-            # Check if the audio is silent
-            rms = audioop.rms(data, 2)
-            if rms < self.silence_threshold:
-                silence_counter += 1
-            else:
-                silence_counter = 0
+            if self.recording_status == 'RECORDING':
+                self.frames.append(data)
 
-            # Stop recording if there's been enough silence
-            if silence_counter >= int(self.silence_duration_limit * self.rate / self.chunk_size):
-                self.is_recording = False
+                # Check if the audio is silent
+                rms = audioop.rms(data, 2)
+                if rms < self.silence_threshold:
+                    silence_counter += 1
+                else:
+                    silence_counter = 0
 
-        print("Recording stopped...")
+                # Stop recording if there's been enough silence
+                if silence_counter >= int(self.silence_duration_limit * self.rate / self.chunk_size):
+                    self.recording_status = 'FINISHED'
+                    print("Recording stopped...")
+
+            elif self.recording_status == 'WAIT_RECORDING':
+                rms = audioop.rms(data, 2)
+                if rms > self.silence_threshold:
+                    self.recording_status = 'RECORDING'
+                    print("Recording started...")
 
         # Stop and close the audio stream
         stream.stop_stream()
         stream.close()
         self.audio.terminate()
+
+        self.recording_status = 'TERMINATED'
+        print("Recording terminated.")
 
     def record(self, async_execution=True):
         if async_execution:
@@ -82,8 +95,8 @@ class AudioRecorder:
             return False
         return not self.record_thread.is_alive()
 
-    def stop_record(self):
-        self.is_recording = False
+    def abort_recording(self):
+        self.recording_status = 'ABORTED'
 
     def save(self, filename):
         os.makedirs(os.path.dirname(filename), exist_ok=True)
