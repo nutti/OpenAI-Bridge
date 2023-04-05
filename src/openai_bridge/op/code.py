@@ -1,11 +1,18 @@
 import bpy
 import glob
 import os
+import uuid
+import gpu
+from gpu_extras.batch import batch_for_shader
+import blf
 from ..utils.common import (
+    AUDIO_DATA_DIR,
     CODE_DATA_DIR,
     get_area_region_space,
 )
-
+from ..utils.audio_recorder import (
+    AudioRecorder,
+)
 from ..utils.threading import (
     sync_request,
     async_request,
@@ -167,21 +174,175 @@ class OPENAI_CodeConditionPropertyCollection(bpy.types.PropertyGroup):
     )
 
 
+class OPENAI_OT_CodeFromAudio(bpy.types.Operator):
+
+    bl_idname = "system.openai_code_from_audio"
+    bl_description = "Execute code from audio via OpenAI API"
+    bl_label = "Code from Audio"
+    bl_options = {'REGISTER'}
+
+    num_conditions: bpy.props.IntProperty(
+        name="Number of Conditions",
+        default=1,
+        min=0,
+        max=10,
+    )
+    conditions: bpy.props.CollectionProperty(
+        name="Conditions",
+        type=OPENAI_CodeConditionPropertyCollection,
+    )
+
+    _timer = None
+    _draw_cb = {"space_data": None, "handler": None}
+    _recorder = None
+
+    @classmethod
+    def draw_status(cls, context):
+        font_id = 0
+
+        center_x = context.region.width / 2
+        center_y = context.region.height / 2
+
+        # Draw background.
+        original_state = gpu.state.blend_get()
+        gpu.state.blend_set('ALPHA')
+        rect_width = 250.0
+        rect_height = 180.0
+        vertex_data = {
+            "pos": [
+                [center_x - rect_width / 2, center_y - rect_height / 2],
+                [center_x - rect_width / 2, center_y + rect_height / 2],
+                [center_x + rect_width / 2, center_y + rect_height / 2],
+                [center_x + rect_width / 2, center_y - rect_height / 2],
+            ]
+        }
+        index_data = [
+            [0, 1, 2],
+            [2, 3, 0]
+        ]
+        shader = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
+        batch = batch_for_shader(shader, 'TRIS', vertex_data, indices=index_data)
+        shader.bind()
+        shader.uniform_float("color", [0.0, 0.0, 0.0, 0.6])
+        batch.draw(shader)
+        gpu.state.blend_set(original_state)
+
+        blf.color(font_id, 0.8, 0.8, 0.8, 1.0)
+        size = blf.dimensions(font_id, "Recording ...")
+        blf.position(font_id, center_x - size[0] - 40.0, center_y - size[1] / 2, 0.0)
+        blf.size(font_id, 32)
+        blf.draw(font_id, "Recording ...")
+
+    def send_request(self, context, record_filename):
+        user_prefs = context.preferences
+        prefs = user_prefs.addons["openai_bridge"].preferences
+        api_key = prefs.api_key
+
+        request = {
+            "model": prefs.code_tool_model,
+            "messages": []
+        }
+
+        conditions_for_bpy_code = [
+            "Programming Language: Python",
+            "Use Blender Python API",
+            "Prefer to use bpy.ops",
+            "Prefer small code",
+        ]
+        for condition in conditions_for_bpy_code:
+            request["messages"].extend([
+                {
+                    "role": "system",
+                    "content": condition
+                }
+            ])
+
+        options = {
+            "audio_file": record_filename,
+            "audio_model": prefs.audio_tool_model,
+            "mode": 'GENERATE',
+            "execute_immediately": True,
+        }
+
+        if not prefs.async_execution:
+            sync_request(api_key, 'AUDIO_CODE', request, options, context, self)
+        else:
+            transaction_data = {
+                "type": 'CODE',
+                "title": "",
+            }
+            async_request(api_key, 'AUDIO_CODE', request, options, transaction_data)
+            # Run Message Processing Timer if it has not launched yet.
+            bpy.ops.system.openai_process_message()
+
+        print(f"Sent Request: f{request}")
+        return {'FINISHED'}
+
+    def finalize(self, context):
+        cls = self.__class__
+
+        cls._recorder = None
+
+        if cls._timer is not None:
+            wm = context.window_manager
+            wm.event_timer_remove(cls._timer)
+            cls._timer = None
+        if cls._draw_cb["space_data"] is not None and cls._draw_cb["handler"] is not None:
+            cls._draw_cb["space_data"].draw_handler_remove(cls._draw_cb["handler"], 'WINDOW')
+
+    def modal(self, context, event):
+        cls = self.__class__
+
+        if event.type == 'ESC':
+            cls._recorder.stop_record()
+
+            self.finalize(context)
+            context.area.tag_redraw()
+
+            return {'CANCELLED'}
+        elif event.type == 'TIMER':
+            if cls._recorder is not None and cls._recorder.record_ended():
+                dirname = f"{AUDIO_DATA_DIR}/record"
+                os.makedirs(dirname, exist_ok=True)
+                record_filename = f"{dirname}/{uuid.uuid4()}.wav"
+                cls._recorder.save(record_filename)
+
+                self.finalize(context)
+                self.send_request(context, record_filename)
+                context.area.tag_redraw()
+
+                return {'FINISHED'}
+
+            context.area.tag_redraw()
+
+        return {'PASS_THROUGH'}
+
+    def execute(self, context):
+        cls = self.__class__
+        wm = context.window_manager
+        user_prefs = context.preferences
+        prefs = user_prefs.addons["openai_bridge"].preferences
+
+        cls._timer = wm.event_timer_add(0.1, window=context.window)
+        wm.modal_handler_add(self)
+
+        cls._draw_cb["space_data"] = bpy.types.SpaceView3D
+        cls._draw_cb["handler"] = bpy.types.SpaceView3D.draw_handler_add(cls.draw_status, (context, ), 'WINDOW', 'POST_PIXEL')
+
+        cls._recorder = AudioRecorder(prefs.audio_record_format, prefs.audio_record_channels, prefs.audio_record_rate,
+                                      prefs.audio_record_chunk_size, prefs.audio_record_silence_threshold,
+                                      prefs.audio_record_silence_duration_limit)
+        cls._recorder.record(async_execution=True)
+
+        return {'RUNNING_MODAL'}
+
+
 class OPENAI_OT_Code(bpy.types.Operator):
 
     bl_idname = "system.openai_code"
     bl_description = "Generate code via OpenAI API"
     bl_label = "Code"
     bl_options = {'REGISTER'}
-
-    input_method: bpy.props.EnumProperty(
-        name="Input",
-        items=[
-            ('TEXT', "Text", "Input from text"),
-            ('AUDIO', "Audio", "Input from audio"),
-        ],
-        default='TEXT',
-    )
 
     prompt: bpy.props.StringProperty(
         name="Prompt",

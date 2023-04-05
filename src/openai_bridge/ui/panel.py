@@ -518,11 +518,15 @@ class OPENAI_PT_CodeToolPrompt(bpy.types.Panel):
         row.operator_context = 'EXEC_DEFAULT'
         row.prop(props, "prompt", text="")
         op = row.operator(code.OPENAI_OT_Code.bl_idname, icon='PLAY', text="")
-        op.input_method = 'TEXT'
         op.prompt = props.prompt
         op.mode = 'GENERATE'
         op.execute_immediately = True
         op.sync = False
+        op.num_conditions = len(sc.openai_code_tool_conditions)
+        for i, condition in enumerate(sc.openai_code_tool_conditions):
+            item = op.conditions.add()
+            item.condition = condition.condition
+        op = row.operator(code.OPENAI_OT_CodeFromAudio.bl_idname, icon='REC', text="")
         op.num_conditions = len(sc.openai_code_tool_conditions)
         for i, condition in enumerate(sc.openai_code_tool_conditions):
             item = op.conditions.add()

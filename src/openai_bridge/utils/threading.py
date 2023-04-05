@@ -19,6 +19,7 @@ from ..utils.common import (
     CODE_DATA_DIR,
     ChatTextFile,
 )
+from ..utils import error_storage
 
 
 class OPENAI_OT_ProcessMessage(bpy.types.Operator):
@@ -105,8 +106,8 @@ class OPENAI_OT_ProcessMessage(bpy.types.Operator):
                 try:
                     exec(code_to_execute)
                 except Exception as e:
-                    error_key = ErrorStorage.get_error_key('CODE', code_to_execute, 0, 0)
-                    ErrorStorage.store_error(error_key, str(e))
+                    error_key = error_storage.get_error_key('CODE', code_to_execute, 0, 0)
+                    error_storage.store_error(error_key, str(e))
         elif message["type"] == 'ERROR':
             exception = data["exception"]
             operator_instance.report({'WARNING'}, f"Error: {exception}")
@@ -432,6 +433,60 @@ class RequestHandler:
         OPENAI_OT_ProcessMessage.process(transaction_id, 'END_OF_TRANSACTION', None, None, sync=sync, context=context, operator_instance=operator_instance)
 
     @classmethod
+    def handle_audio_code_request(cls, api_key, transaction_id, req_data, options, sync, context=None, operator_instance=None):
+        # Send audio.
+        audio_request = {
+            "file": (os.path.basename(options["audio_file"]), open(options["audio_file"], "rb")),
+            "model": (None, options["audio_model"]),
+            "prompt": (None, ""),
+            "response_format": (None, "json"),
+            "temperature": (None, "0.0"),
+            "language": (None, "en"),
+        }
+        audio_headers = {
+            "Authorization": f"Bearer {api_key}"
+        }
+        response = requests.post("https://api.openai.com/v1/audio/transcriptions",
+                                 headers=audio_headers, files=audio_request)
+        response.raise_for_status()
+        response_data = response.json()
+        req_data["messages"].append({
+            "role": "user",
+            "content": response_data["text"],
+        })
+        options["code"] = response_data["text"][0:64]
+
+        # Send prompt.
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}"
+        }
+        response = requests.post("https://api.openai.com/v1/chat/completions",
+                                 headers=headers, data=json.dumps(req_data))
+        response.raise_for_status()
+        response_data = response.json()
+        response_text = response_data["choices"][0]["message"]["content"]
+
+        # Get code body.
+        sections = parse_response_data(response_text)
+        code_sections = []
+        for section in sections:
+            if section["kind"] == 'CODE':
+                code_sections.append(section)
+        if len(code_sections) != 1:
+            raise ValueError(f"Number of code section must be 1 but {len(sections)}")
+        code_body = code_sections[0]["body"]
+
+        os.makedirs(CODE_DATA_DIR, exist_ok=True)
+        filepath = f"{CODE_DATA_DIR}/{options['code']}.py"
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write(code_body)
+
+        # Post to message queue.
+        OPENAI_OT_ProcessMessage.process(transaction_id, 'CODE', {}, options, sync=sync, context=context, operator_instance=operator_instance)
+        OPENAI_OT_ProcessMessage.process(transaction_id, 'END_OF_TRANSACTION', None, None, sync=sync, context=context, operator_instance=operator_instance)
+
+    @classmethod
     def handle_request(cls, request, sync=False, context=None, operator_instance=None):
         api_key = request[0]
         transaction_id = request[1]
@@ -447,6 +502,8 @@ class RequestHandler:
             cls.handle_chat_request(api_key, transaction_id, req_data, options, sync=sync, context=context, operator_instance=operator_instance)
         elif req_type == 'CODE':
             cls.handle_code_request(api_key, transaction_id, req_data, options, sync=sync, context=context, operator_instance=operator_instance)
+        elif req_type == 'AUDIO_CODE':
+            cls.handle_audio_code_request(api_key, transaction_id, req_data, options, sync=sync, context=context, operator_instance=operator_instance)
 
     @classmethod
     def send_loop(cls):
@@ -458,7 +515,7 @@ class RequestHandler:
                 cls.request_queue_lock.acquire()
                 if len(cls.request_queue) == 0:
                     cls.request_queue_lock.release()
-                    time.sleep(1)
+                    time.sleep(0.01)
                     continue
                 request = cls.request_queue.pop(0)
                 cls.request_queue_lock.release()

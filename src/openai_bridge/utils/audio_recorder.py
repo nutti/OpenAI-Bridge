@@ -1,0 +1,97 @@
+import wave
+import audioop
+import os
+import threading
+
+support_audio_recording = True
+try:
+    import pyaudio
+except:
+    support_audio_recording = False
+
+
+class AudioRecorder:
+
+    def __init__(self, format='INT16', channels=2, rate=44100, chunk_size=1024, silence_threshold=100, silence_duration_limit=3):
+        if not support_audio_recording:
+            raise SystemError("Audio recording is not supported.")
+
+        FORMAT_TO_PYAUDIO_FORMAT = {
+            'FLOAT32': pyaudio.paFloat32,
+            'INT32': pyaudio.paInt32,
+            'INT24': pyaudio.paInt24,
+            'INT16': pyaudio.paInt16,
+            'INT8': pyaudio.paInt8,
+            'UINT8': pyaudio.paUInt8,
+        }
+
+        self.audio = pyaudio.PyAudio()
+        self.frames = []
+        self.format = FORMAT_TO_PYAUDIO_FORMAT[format]
+        self.channels = channels
+        self.rate = rate
+        self.chunk_size = chunk_size
+        self.silence_threshold = silence_threshold
+        self.silence_duration_limit = silence_duration_limit
+        self.record_thread = None
+        self.is_recording = False
+
+    def record_internal(self):
+        print(f"Open the audio stream... (Format: {self.format}, Channels: {self.channels}, Rate: {self.rate}, Chunk: {self.chunk_size})")
+
+        stream = self.audio.open(format=self.format, channels=self.channels,
+                                 rate=self.rate, input=True, frames_per_buffer=self.chunk_size)
+
+        print("Recording started...")
+
+        # Record the audio and detect silence
+        self.frames = []
+        self.is_recording = True
+        silence_counter = 0
+        while self.is_recording:
+            data = stream.read(self.chunk_size)
+            self.frames.append(data)
+
+            # Check if the audio is silent
+            rms = audioop.rms(data, 2)
+            if rms < self.silence_threshold:
+                silence_counter += 1
+            else:
+                silence_counter = 0
+
+            # Stop recording if there's been enough silence
+            if silence_counter >= int(self.silence_duration_limit * self.rate / self.chunk_size):
+                self.is_recording = False
+
+        print("Recording stopped...")
+
+        # Stop and close the audio stream
+        stream.stop_stream()
+        stream.close()
+        self.audio.terminate()
+
+    def record(self, async_execution=True):
+        if async_execution:
+            self.record_thread = threading.Thread(target=self.record_internal)
+            self.record_thread.start()
+        else:
+            self.record_internal()
+
+    def record_ended(self):
+        if self.record_thread is None:
+            return False
+        return not self.record_thread.is_alive()
+
+    def stop_record(self):
+        self.is_recording = False
+
+    def save(self, filename):
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+        wf = wave.open(filename, 'wb')
+        wf.setnchannels(self.channels)
+        wf.setsampwidth(self.audio.get_sample_size(self.format))
+        wf.setframerate(self.rate)
+        wf.writeframes(b''.join(self.frames))
+        wf.close()
+
+        print("Audio saved to", filename)

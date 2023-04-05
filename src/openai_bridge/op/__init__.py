@@ -38,6 +38,7 @@ classes = [
     code.OPENAI_OT_CopyCodeError,
     code.OPENAI_CodeConditionPropertyCollection,
     code.OPENAI_OT_Code,
+    code.OPENAI_OT_CodeFromAudio,
 
     image.OPENAI_OT_GeneateImage,
     image.OPENAI_OT_LoadImage,

@@ -39,6 +39,7 @@ def register():
     properties.register_properties()
 
     op.register()
+    bpy.utils.register_class(preferences.OPENAI_OT_EnableAudioInput)
     bpy.utils.register_class(preferences.OPENAI_Preferences)
     ui.register()
 
@@ -57,6 +58,7 @@ def unregister():
 
     ui.unregister()
     bpy.utils.unregister_class(preferences.OPENAI_Preferences)
+    bpy.utils.unregister_class(preferences.OPENAI_OT_EnableAudioInput)
     op.unregister()
 
     properties.unregister_properties()

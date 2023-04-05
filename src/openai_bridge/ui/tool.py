@@ -3,7 +3,10 @@ import bpy
 from ..op.image import OPENAI_OT_GeneateImage
 from ..op.audio import OPENAI_OT_TranscribeSoundStrip
 from ..op.chat import OPENAI_OT_Chat
-from ..op.code import OPENAI_OT_Code
+from ..op.code import (
+    OPENAI_OT_Code,
+    OPENAI_OT_CodeFromAudio,
+)
 from ..utils.common import ICON_DIR
 
 
@@ -98,6 +101,11 @@ class OPENAI_WST_OpenAICodeTool(bpy.types.WorkSpaceTool):
             OPENAI_OT_Code.bl_idname,
             {"type": 'SPACE', "value": 'PRESS'},
             {"properties": [("input_method", 'TEXT'), ("mode", 'GENERATE'), ("execute_immediately", True)]},
+        ),
+        (
+            OPENAI_OT_CodeFromAudio.bl_idname,
+            {"type": 'A', "value": 'PRESS', "shift": True},
+            {},
         ),
     )
 

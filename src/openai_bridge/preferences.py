@@ -1,4 +1,21 @@
 import bpy
+from .utils import pip
+
+
+class OPENAI_OT_EnableAudioInput(bpy.types.Operator):
+
+    bl_idname = "system.openai_enable_audio_input"
+    bl_description = "Enable to input from audio (This install 'pyaudio' library to Blender Python environment)"
+    bl_label = "Enable Audio Input"
+    bl_options = {'REGISTER'}
+
+    def execute(self, context):
+        ret_code = pip.install_package("pyaudio")
+        if ret_code != 0:
+            self.report({'WARNING'}, "Failed to enable audio input. See details on the console.")
+            return {'CANCELLED'}
+
+        return {'FINISHED'}
 
 
 class OPENAI_Preferences(bpy.types.AddonPreferences):
@@ -79,6 +96,55 @@ class OPENAI_Preferences(bpy.types.AddonPreferences):
         default="gpt-3.5-turbo",
     )
 
+    audio_record_format: bpy.props.EnumProperty(
+        name="Format",
+        description="Formats for the audio recording",
+        items=[
+            ('FLOAT32', "Float32", "Floating point (32bit)"),
+            ('INT32', "Int32", "Integer (32bit)"),
+            ('INT24', "Int24", "Integer (24bit)"),
+            ('INT16', "Int16", "Integer (16bit)"),
+            ('INT8', "Int8", "Integer (8bit)"),
+            ('UINT8', "UInt8", "Unsigned integer (8bit)"),
+        ],
+        default='INT16',
+    )
+    audio_record_channels: bpy.props.IntProperty(
+        name="Channels",
+        description="Channels for the audio recording",
+        default=2,
+        min=1,
+        max=2,
+    )
+    audio_record_rate: bpy.props.IntProperty(
+        name="Rate",
+        description="Sampling rate for the audio recording",
+        default=44100,
+        min=44100,
+        max=44100,
+    )
+    audio_record_chunk_size: bpy.props.IntProperty(
+        name="Chunk Size",
+        description="Frames per buffer",
+        default=1024,
+        min=512,
+        max=4096,
+    )
+    audio_record_silence_threshold: bpy.props.IntProperty(
+        name="Silence Threshold",
+        description="Threshold to stop the audio recording",
+        default=100,
+        min=0,
+        max=65536,
+    )
+    audio_record_silence_duration_limit: bpy.props.IntProperty(
+        name="Silence Duration Limit",
+        description="The seconds to stop the audio recording",
+        default=2,
+        min=0,
+        max=10,
+    )
+
     def draw(self, _):
         layout = self.layout
 
@@ -101,6 +167,19 @@ class OPENAI_Preferences(bpy.types.AddonPreferences):
                 row.prop(self, "show_request_status", text="Show Status")
                 if self.show_request_status:
                     row.prop(self, "request_status_location", expand=True, text="Location")
+            
+            layout.separator()
+
+            sp = layout.split(factor=0.35)
+            col = sp.column()
+            col.operator(OPENAI_OT_EnableAudioInput.bl_idname)
+            col.prop(self, "audio_record_format")
+            col.prop(self, "audio_record_channels")
+            col.prop(self, "audio_record_rate")
+            col.prop(self, "audio_record_chunk_size")
+            col.prop(self, "audio_record_silence_threshold")
+            col.prop(self, "audio_record_silence_duration_limit")
+
         elif self.category == 'IMAGE_TOOL':
             layout.label(text="No configuration")
         elif self.category == 'AUDIO_TOOL':

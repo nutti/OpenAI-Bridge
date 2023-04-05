@@ -4,6 +4,7 @@ import textwrap
 
 DATA_DIR = f"{os.path.dirname(__file__)}/../_data"
 IMAGE_DATA_DIR = f"{DATA_DIR}/image"
+AUDIO_DATA_DIR = f"{DATA_DIR}/audio"
 CHAT_DATA_DIR = f"{DATA_DIR}/chat"
 CODE_DATA_DIR = f"{DATA_DIR}/code"
 ICON_DIR = f"{os.path.dirname(__file__)}/../icon"
