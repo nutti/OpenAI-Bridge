@@ -164,6 +164,14 @@ class OPENAI_Preferences(bpy.types.AddonPreferences):
         if self.category == 'SYSTEM':
             layout.prop(self, "api_key")
 
+            row = layout.row()
+            op = row.operator(bpy.types.WM_OT_url_open.bl_idname, text="Register OpenAI API", icon='URL')
+            op.url = "https://openai.com/blog/openai-api"
+            op = row.operator(bpy.types.WM_OT_url_open.bl_idname, text="OpenAI API Pricing", icon='URL')
+            op.url = "https://openai.com/pricing"
+
+            layout.separator()
+
             col = layout.column()
             row = col.row()
             row.alignment = 'LEFT'
