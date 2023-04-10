@@ -1,5 +1,6 @@
 import bpy
 import os
+import uuid
 
 from ..utils.threading import (
     sync_request,
@@ -7,7 +8,122 @@ from ..utils.threading import (
 )
 from ..utils.common import (
     get_area_region_space,
+    IMAGE_DATA_DIR,
 )
+
+
+class OPENAI_OT_EditImage(bpy.types.Operator):
+
+    bl_idname = "system.openai_edit_image"
+    bl_description = "Edit image via OpenAI API"
+    bl_label = "Edit Image"
+    bl_options = {'REGISTER'}
+
+    prompt: bpy.props.StringProperty(
+        name="Prompt",
+    )
+    num_images: bpy.props.IntProperty(
+        name="Number of Images",
+        description="How many images to generate",
+        default=1,
+        min=1,
+        max=10,
+    )
+    image_size: bpy.props.EnumProperty(
+        name="Image Size",
+        description="The size of the images to generate",
+        items=[
+            ('256x256', "256x256", "256x256"),
+            ('512x512', "512x512", "512x512"),
+            ('1024x1024', "1024x1024", "1024x1024"),
+        ]
+    )
+    base_image_name: bpy.props.StringProperty(
+        name="Base Image Name",
+        description="Name of file to be used for the base image",
+    )
+    mask_image_name: bpy.props.StringProperty(
+        name="Mask Image Name",
+        description="Name of image block to be used for the mask image",
+    )
+
+    def draw(self, context):
+        layout = self.layout
+        sc = context.scene
+
+        layout.prop(self, "prompt")
+
+        row = layout.row()
+        col = row.column(align=True)
+        col.label(text="Size:")
+        col.prop(self, "image_size", text="")
+        col = row.column(align=True)
+        col.label(text="Num")
+        col.prop(self, "num_images", text="")
+
+        layout.prop(sc, "openai_edit_image_mask_image")
+        if sc.openai_edit_image_mask_image is not None:
+            self.mask_image_name = sc.openai_edit_image_mask_image.name
+
+    def invoke(self, context, event):
+        wm = context.window_manager
+        user_prefs = context.preferences
+        prefs = user_prefs.addons["openai_bridge"].preferences
+
+        base_image = context.space_data.image
+        is_rgba = (base_image.depth // (base_image.is_float * 3 + 1) == 32)
+        if not is_rgba:
+            self.report({'WARNING'}, "Image format must be RGBA.")
+            return {'CANCELLED'}
+
+        self.base_image_name = base_image.name
+
+        return wm.invoke_props_dialog(self, width=prefs.popup_menu_width)
+
+    def execute(self, context):
+        user_prefs = context.preferences
+        prefs = user_prefs.addons["openai_bridge"].preferences
+        api_key = prefs.api_key
+
+        # Save mask image.
+        file_id = uuid.uuid4()
+        tmp_image_dirpath = f"{IMAGE_DATA_DIR}/tmp"
+        os.makedirs(tmp_image_dirpath, exist_ok=True)
+        base_image_filepath = f"{tmp_image_dirpath}/{file_id}_base.png"
+        mask_image_filepath = f"{tmp_image_dirpath}/{file_id}_mask.png"
+        base_image = bpy.data.images[self.base_image_name]
+        base_image.save(filepath=base_image_filepath)
+        mask_image = bpy.data.images[self.mask_image_name]
+        mask_image.save(filepath=mask_image_filepath)
+
+        request = {
+            "image": (os.path.basename(base_image_filepath), open(base_image_filepath, "rb")),
+            "mask": (os.path.basename(mask_image_filepath), open(mask_image_filepath, "rb")),
+            "prompt": (None, self.prompt),
+            "n": (None, self.num_images),
+            "size": (None, self.image_size),
+            "response_format": (None, "url"),
+        }
+        options = {
+            "base_image_name": self.base_image_name,
+            "mask_image_name": self.mask_image_name,
+            "base_image_filepath": base_image_filepath,
+            "mask_image_filepath": mask_image_filepath,
+        }
+
+        if not prefs.async_execution:
+            sync_request(api_key, 'EDIT_IMAGE', request, options, context, self)
+        else:
+            transaction_data = {
+                "type": 'EDIT_IMAGE',
+                "title": self.base_image_name[0:32],
+            }
+            async_request(api_key, 'EDIT_IMAGE', request, options, transaction_data)
+            # Run Message Processing Timer if it has not launched yet.
+            bpy.ops.system.openai_process_message()
+
+        print(f"Sent Request: f{request}")
+        return {'FINISHED'}
 
 
 class OPENAI_OT_LoadImage(bpy.types.Operator):

@@ -44,7 +44,7 @@ class OPENAI_ImageToolProperties(bpy.types.PropertyGroup):
         sc = context.scene
         collection =sc.openai_image_tool_image_collection
 
-        image_dir = f"{IMAGE_DATA_DIR}"
+        image_dir = f"{IMAGE_DATA_DIR}/generated"
         if not os.path.isdir(image_dir):
             return []
 
@@ -64,6 +64,28 @@ class OPENAI_ImageToolProperties(bpy.types.PropertyGroup):
         name="Edit Target",
         description="Target image for editing",
         items=get_image_previews_items,
+    )
+
+
+class OPENAI_EditImageProperties(bpy.types.PropertyGroup):
+    prompt: bpy.props.StringProperty(
+        name="Property"
+    )
+    num_images: bpy.props.IntProperty(
+        name="Number of Images",
+        description="How many images to generate",
+        default=1,
+        min=1,
+        max=10,
+    )
+    image_size: bpy.props.EnumProperty(
+        name="Image Size",
+        description="The size of the images to generate",
+        items=[
+            ('256x256', "256x256", "256x256"),
+            ('512x512', "512x512", "512x512"),
+            ('1024x1024', "1024x1024", "1024x1024"),
+        ]
     )
 
 
@@ -249,6 +271,7 @@ def register_properties():
     scene = bpy.types.Scene
 
     bpy.utils.register_class(OPENAI_ImageToolProperties)
+    bpy.utils.register_class(OPENAI_EditImageProperties)
     bpy.utils.register_class(OPENAI_AudioToolProperties)
     bpy.utils.register_class(OPENAI_AudioToolAudioProperties)
     bpy.utils.register_class(OPENAI_ChatToolProperties)
@@ -264,6 +287,21 @@ def register_properties():
         type=OPENAI_ImageToolProperties
     )
     scene.openai_image_tool_image_collection = bpy.utils.previews.new()
+    scene.openai_edit_image_props = bpy.props.PointerProperty(
+        type=OPENAI_EditImageProperties
+    )
+    scene.openai_edit_image_base_image = bpy.props.PointerProperty(
+        name="Base Image",
+        description="Image block to be used for the base image",
+        type=bpy.types.Image,
+        poll=lambda _, img: img.depth // (img.is_float * 3 + 1) == 32,
+    )
+    scene.openai_edit_image_mask_image = bpy.props.PointerProperty(
+        name="Mask Image",
+        description="Image block to be used for the mask image",
+        type=bpy.types.Image,
+        poll=lambda _, img: img.depth // (img.is_float * 3 + 1) == 32,
+    )
 
     # Properties for Audio Tool.
     scene.openai_audio_tool_props = bpy.props.PointerProperty(
@@ -312,6 +350,9 @@ def unregister_properties():
     del scene.openai_chat_tool_conditions
     del scene.openai_chat_tool_props
 
+    del scene.openai_edit_image_mask_image
+    del scene.openai_edit_image_base_image
+    del scene.openai_edit_image_props
     del scene.openai_image_tool_image_collection
     del scene.openai_image_tool_props
 
@@ -328,4 +369,5 @@ def unregister_properties():
     bpy.utils.unregister_class(OPENAI_ChatToolProperties)
     bpy.utils.unregister_class(OPENAI_AudioToolAudioProperties)
     bpy.utils.unregister_class(OPENAI_AudioToolProperties)
+    bpy.utils.unregister_class(OPENAI_EditImageProperties)
     bpy.utils.unregister_class(OPENAI_ImageToolProperties)

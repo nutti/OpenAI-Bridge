@@ -78,6 +78,48 @@ class OPENAI_PT_GenerateImage(bpy.types.Panel):
         r.enabled = not props.auto_image_name
 
 
+class OPENAI_PT_EditImage(bpy.types.Panel):
+
+    bl_region_type = 'UI'
+    bl_space_type = 'IMAGE_EDITOR'
+    bl_category = "OpenAI"
+    bl_label = "Edit Image"
+    bl_parent_id = "OPENAI_PT_ImageTool"
+
+    def draw_header(self, context):
+        layout = self.layout
+
+        layout.label(text="", icon='GREASEPENCIL')
+
+    def draw(self, context):
+        layout = self.layout
+        sc = context.scene
+        props = sc.openai_edit_image_props
+
+        layout.prop(sc, "openai_edit_image_base_image", text="Base")
+        layout.prop(sc, "openai_edit_image_mask_image", text="Mask")
+
+        row = layout.row(align=True)
+        row.operator_context = 'EXEC_DEFAULT'
+        row.prop(props, "prompt", text="")
+        ops = row.operator(image.OPENAI_OT_EditImage.bl_idname, icon='PLAY', text="")
+        ops.prompt = props.prompt
+        ops.num_images = props.num_images
+        ops.image_size = props.image_size
+        if sc.openai_edit_image_base_image is not None:
+            ops.base_image_name = sc.openai_edit_image_base_image.name
+        if sc.openai_edit_image_mask_image is not None:
+            ops.mask_image_name = sc.openai_edit_image_mask_image.name
+
+        row = layout.row()
+        col = row.column(align=True)
+        col.label(text="Size:")
+        col.prop(props, "image_size", text="")
+        col = row.column(align=True)
+        col.label(text="Num:")
+        col.prop(props, "num_images", text="")
+
+
 class OPENAI_PT_GeneratedImages(bpy.types.Panel):
 
     bl_region_type = 'UI'
@@ -103,8 +145,6 @@ class OPENAI_PT_GeneratedImages(bpy.types.Panel):
         op.image_filepath = props.edit_target
         op = col.operator(image.OPENAI_OT_RemoveImage.bl_idname, text="", icon='TRASH')
         op.image_filepath = props.edit_target
-
-        # TODO: Add editing tool
 
 
 class OPENAI_PT_AudioToolSequenceEditor(bpy.types.Panel):

@@ -41,6 +41,7 @@ classes = [
     code.OPENAI_OT_CodeFromAudio,
 
     image.OPENAI_OT_GeneateImage,
+    image.OPENAI_OT_EditImage,
     image.OPENAI_OT_LoadImage,
     image.OPENAI_OT_RemoveImage,
 ]

@@ -16,6 +16,7 @@ def register():
 
     bpy.utils.register_class(panel.OPENAI_PT_ImageTool)
     bpy.utils.register_class(panel.OPENAI_PT_GenerateImage)
+    bpy.utils.register_class(panel.OPENAI_PT_EditImage)
     bpy.utils.register_class(panel.OPENAI_PT_GeneratedImages)
     bpy.utils.register_class(panel.OPENAI_PT_AudioToolSequenceEditor)
     bpy.utils.register_class(panel.OPENAI_PT_TranscribeSoundStrip)
@@ -51,6 +52,7 @@ def unregister():
     bpy.utils.unregister_class(panel.OPENAI_PT_TranscribeSoundStrip)
     bpy.utils.unregister_class(panel.OPENAI_PT_AudioToolSequenceEditor)
     bpy.utils.unregister_class(panel.OPENAI_PT_GeneratedImages)
+    bpy.utils.unregister_class(panel.OPENAI_PT_EditImage)
     bpy.utils.unregister_class(panel.OPENAI_PT_GenerateImage)
     bpy.utils.unregister_class(panel.OPENAI_PT_ImageTool)
 

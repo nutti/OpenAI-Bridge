@@ -296,7 +296,7 @@ class RequestHandler:
         response_data = response.json()
 
         # Download image.
-        for data in response_data["data"]:
+        for i, data in enumerate(response_data["data"]):
             download_url = data["url"]
             response = requests.get(download_url)
             response.raise_for_status()
@@ -306,12 +306,14 @@ class RequestHandler:
             image_data = response.content
 
             # Save image
-            dirname = IMAGE_DATA_DIR
+            dirname = f"{IMAGE_DATA_DIR}/generated"
             os.makedirs(dirname, exist_ok=True)
             if options["image_name"] == "":
                 filename = urlparse(download_url).path.split("/")[-1]
             else:
                 filename = options["image_name"]
+                if i >= 1:
+                    filename = f"{filename}-{i}"
             filepath = f"{dirname}/{filename}"
             with open(filepath, "wb") as f:
                 f.write(image_data)
@@ -319,6 +321,46 @@ class RequestHandler:
             OPENAI_OT_ProcessMessage.process(transaction_id, 'IMAGE', {"filepath": filepath}, options, sync=sync, context=context, operator_instance=operator_instance)
 
         OPENAI_OT_ProcessMessage.process(transaction_id, 'END_OF_TRANSACTION', None, None, sync=sync, context=context, operator_instance=operator_instance)
+
+    @classmethod
+    def handle_edit_image_request(cls, api_key, transaction_id, req_data, options, sync, context=None, operator_instance=None):
+        # Send prompt.
+        headers = {
+            "Authorization": f"Bearer {api_key}"
+        }
+        response = requests.post("https://api.openai.com/v1/images/edits",
+                                 headers=headers, files=req_data)
+        response.raise_for_status()
+        response_data = response.json()
+
+        # Download image.
+        for i, data in enumerate(response_data["data"]):
+            download_url = data["url"]
+            response = requests.get(download_url)
+            response.raise_for_status()
+            content_type = response.headers["content-type"]
+            if "image" not in content_type:
+                raise RuntimeError(f"Invalid content-type '{content_type}'")
+            image_data = response.content
+
+            # Save image
+            dirname = f"{IMAGE_DATA_DIR}/generated"
+            os.makedirs(dirname, exist_ok=True)
+            filename = f"edit-{options['base_image_name']}.png"
+            if i >= 1:
+                filename = f"{filename}-{i}"
+            filepath = f"{dirname}/{filename}"
+            with open(filepath, "wb") as f:
+                f.write(image_data)
+
+            # Remove temporary files.
+            os.remove(options["base_image_filepath"])
+            os.remove(options["mask_image_filepath"])
+
+            OPENAI_OT_ProcessMessage.process(transaction_id, 'IMAGE', {"filepath": filepath}, options, sync=sync, context=context, operator_instance=operator_instance)
+
+        OPENAI_OT_ProcessMessage.process(transaction_id, 'END_OF_TRANSACTION', None, None, sync=sync, context=context, operator_instance=operator_instance)
+
 
     @classmethod
     def handle_audio_request(cls, api_key, transaction_id, req_data, options, sync, context=None, operator_instance=None):
@@ -496,6 +538,8 @@ class RequestHandler:
 
         if req_type == 'IMAGE':
             cls.handle_image_request(api_key, transaction_id, req_data, options, sync=sync, context=context, operator_instance=operator_instance)
+        elif req_type == 'EDIT_IMAGE':
+            cls.handle_edit_image_request(api_key, transaction_id, req_data, options, sync=sync, context=context, operator_instance=operator_instance)
         elif req_type == 'AUDIO':
             cls.handle_audio_request(api_key, transaction_id, req_data, options, sync=sync, context=context, operator_instance=operator_instance)
         elif req_type == 'CHAT':
