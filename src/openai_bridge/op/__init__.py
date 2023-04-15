@@ -43,6 +43,7 @@ classes = [
 
     image.OPENAI_OT_GeneateImage,
     image.OPENAI_OT_EditImage,
+    image.OPENAI_OT_GenerateVariationImage,
     image.OPENAI_OT_LoadImage,
     image.OPENAI_OT_RemoveImage,
 ]

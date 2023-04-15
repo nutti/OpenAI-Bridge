@@ -93,13 +93,13 @@ class OPENAI_OT_GenerateCodeExample(bpy.types.Operator):
             options["code"] = f"[Example] {py_class}.{py_prop_name}"
 
         if not prefs.async_execution:
-            sync_request(api_key, 'CODE', request, options, context, self)
+            sync_request(api_key, 'GENERATE_CODE', request, options, context, self)
         else:
             transaction_data = {
                 "type": 'CODE',
                 "title": options["code"],
             }
-            async_request(api_key, 'CODE', request, options, transaction_data)
+            async_request(api_key, 'GENERATE_CODE', request, options, transaction_data)
             # Run Message Processing Timer if it has not launched yet.
             bpy.ops.system.openai_process_message()
 
@@ -396,13 +396,13 @@ class OPENAI_OT_GenerateCodeFromAudio(bpy.types.Operator):
         }
 
         if not prefs.async_execution:
-            sync_request(api_key, 'AUDIO_CODE', request, options, context, self)
+            sync_request(api_key, 'GENERATE_CODE_FROM_AUDIO', request, options, context, self)
         else:
             transaction_data = {
                 "type": 'CODE',
                 "title": "",
             }
-            async_request(api_key, 'AUDIO_CODE', request, options, transaction_data)
+            async_request(api_key, 'GENERATE_CODE_FROM_AUDIO', request, options, transaction_data)
             # Run Message Processing Timer if it has not launched yet.
             bpy.ops.system.openai_process_message()
 
@@ -596,13 +596,13 @@ class OPENAI_OT_GenerateCode(bpy.types.Operator):
             options["code"] = self.new_code_name
 
         if not prefs.async_execution:
-            sync_request(api_key, 'CODE', request, options, context, self)
+            sync_request(api_key, 'GENERATE_CODE', request, options, context, self)
         else:
             transaction_data = {
                 "type": 'CODE',
                 "title": options["code"][0:32],
             }
-            async_request(api_key, 'CODE', request, options, transaction_data)
+            async_request(api_key, 'GENERATE_CODE', request, options, transaction_data)
             # Run Message Processing Timer if it has not launched yet.
             bpy.ops.system.openai_process_message()
 

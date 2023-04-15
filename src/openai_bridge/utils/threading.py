@@ -291,7 +291,7 @@ class RequestHandler:
         print("RequestHandler is stopped.")
 
     @classmethod
-    def handle_image_request(cls, api_key, transaction_id, req_data, options, sync, context=None, operator_instance=None):
+    def handle_genereate_image_request(cls, api_key, transaction_id, req_data, options, sync, context=None, operator_instance=None):
         # Send prompt.
         headers = {
             "Content-Type": "application/json",
@@ -368,9 +368,46 @@ class RequestHandler:
 
         OPENAI_OT_ProcessMessage.process(transaction_id, 'END_OF_TRANSACTION', None, None, sync=sync, context=context, operator_instance=operator_instance)
 
+    @classmethod
+    def handle_generate_variation_image_request(cls, api_key, transaction_id, req_data, options, sync, context=None, operator_instance=None):
+        # Send prompt.
+        headers = {
+            "Authorization": f"Bearer {api_key}"
+        }
+        response = requests.post("https://api.openai.com/v1/images/variations",
+                                 headers=headers, files=req_data)
+        response.raise_for_status()
+        response_data = response.json()
+
+        # Download image.
+        for i, data in enumerate(response_data["data"]):
+            download_url = data["url"]
+            response = requests.get(download_url)
+            response.raise_for_status()
+            content_type = response.headers["content-type"]
+            if "image" not in content_type:
+                raise RuntimeError(f"Invalid content-type '{content_type}'")
+            image_data = response.content
+
+            # Save image
+            dirname = f"{IMAGE_DATA_DIR}/generated"
+            os.makedirs(dirname, exist_ok=True)
+            filename = f"variation-{options['base_image_name']}.png"
+            if i >= 1:
+                filename = f"{filename}-{i}"
+            filepath = f"{dirname}/{filename}"
+            with open(filepath, "wb") as f:
+                f.write(image_data)
+
+            # Remove temporary files.
+            os.remove(options["base_image_filepath"])
+
+            OPENAI_OT_ProcessMessage.process(transaction_id, 'IMAGE', {"filepath": filepath}, options, sync=sync, context=context, operator_instance=operator_instance)
+
+        OPENAI_OT_ProcessMessage.process(transaction_id, 'END_OF_TRANSACTION', None, None, sync=sync, context=context, operator_instance=operator_instance)
 
     @classmethod
-    def handle_audio_request(cls, api_key, transaction_id, req_data, options, sync, context=None, operator_instance=None):
+    def handle_transcribe_audio_request(cls, api_key, transaction_id, req_data, options, sync, context=None, operator_instance=None):
         # Send audio.
         headers = {
             "Authorization": f"Bearer {api_key}"
@@ -450,7 +487,7 @@ class RequestHandler:
         OPENAI_OT_ProcessMessage.process(transaction_id, 'END_OF_TRANSACTION', None, None, sync=sync, context=context, operator_instance=operator_instance)
 
     @classmethod
-    def handle_code_request(cls, api_key, transaction_id, req_data, options, sync, context=None, operator_instance=None):
+    def handle_generate_code_request(cls, api_key, transaction_id, req_data, options, sync, context=None, operator_instance=None):
         # Send prompt.
         headers = {
             "Content-Type": "application/json",
@@ -483,10 +520,10 @@ class RequestHandler:
 
     @classmethod
     def handle_edit_code_request(cls, api_key, transaction_id, req_data, options, sync, context=None, operator_instance=None):
-        cls.handle_code_request(api_key, transaction_id, req_data, options, sync, context, operator_instance)
+        cls.handle_generate_code_request(api_key, transaction_id, req_data, options, sync, context, operator_instance)
 
     @classmethod
-    def handle_audio_code_request(cls, api_key, transaction_id, req_data, options, sync, context=None, operator_instance=None):
+    def handle_generate_code_from_audio_request(cls, api_key, transaction_id, req_data, options, sync, context=None, operator_instance=None):
         # Send audio.
         audio_request = {
             "file": (os.path.basename(options["audio_file"]), open(options["audio_file"], "rb")),
@@ -547,20 +584,23 @@ class RequestHandler:
         req_data = request[3]
         options = request[4]
 
-        if req_type == 'IMAGE':
-            cls.handle_image_request(api_key, transaction_id, req_data, options, sync=sync, context=context, operator_instance=operator_instance)
+        if req_type == 'GENERATE_IMAGE':
+            cls.handle_genereate_image_request(api_key, transaction_id, req_data, options, sync=sync, context=context, operator_instance=operator_instance)
         elif req_type == 'EDIT_IMAGE':
             cls.handle_edit_image_request(api_key, transaction_id, req_data, options, sync=sync, context=context, operator_instance=operator_instance)
-        elif req_type == 'AUDIO':
-            cls.handle_audio_request(api_key, transaction_id, req_data, options, sync=sync, context=context, operator_instance=operator_instance)
+        elif req_type == 'GENERATE_VARIATION_IMAGE':
+            cls.handle_generate_variation_image_request(api_key, transaction_id, req_data, options, sync=sync, context=context, operator_instance=operator_instance)
+        elif req_type == 'TRANSCRIBE_AUDIO':
+            cls.handle_transcribe_audio_request(api_key, transaction_id, req_data, options, sync=sync, context=context, operator_instance=operator_instance)
         elif req_type == 'CHAT':
             cls.handle_chat_request(api_key, transaction_id, req_data, options, sync=sync, context=context, operator_instance=operator_instance)
-        elif req_type == 'CODE':
-            cls.handle_code_request(api_key, transaction_id, req_data, options, sync=sync, context=context, operator_instance=operator_instance)
+        elif req_type == 'GENERATE_CODE':
+            cls.handle_generate_code_request(api_key, transaction_id, req_data, options, sync=sync, context=context, operator_instance=operator_instance)
+        elif req_type == 'GENERATE_CODE_FROM_AUDIO':
+            cls.handle_generate_code_from_audio_request(api_key, transaction_id, req_data, options, sync=sync, context=context, operator_instance=operator_instance)
         elif req_type == 'EDIT_CODE':
             cls.handle_edit_code_request(api_key, transaction_id, req_data, options, sync=sync, context=context, operator_instance=operator_instance)
-        elif req_type == 'AUDIO_CODE':
-            cls.handle_audio_code_request(api_key, transaction_id, req_data, options, sync=sync, context=context, operator_instance=operator_instance)
+
 
     @classmethod
     def send_loop(cls):

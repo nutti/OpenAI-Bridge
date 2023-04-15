@@ -89,6 +89,28 @@ class OPENAI_ImageToolEditImageProperties(bpy.types.PropertyGroup):
     )
 
 
+class OPENAI_ImageToolGenerateVariationImageProperties(bpy.types.PropertyGroup):
+    prompt: bpy.props.StringProperty(
+        name="Property"
+    )
+    num_images: bpy.props.IntProperty(
+        name="Number of Images",
+        description="How many images to generate",
+        default=1,
+        min=1,
+        max=10,
+    )
+    image_size: bpy.props.EnumProperty(
+        name="Image Size",
+        description="The size of the images to generate",
+        items=[
+            ('256x256', "256x256", "256x256"),
+            ('512x512', "512x512", "512x512"),
+            ('1024x1024', "1024x1024", "1024x1024"),
+        ]
+    )
+
+
 class OPENAI_AudioToolTranscribeSoundStripProperties(bpy.types.PropertyGroup):
     prompt: bpy.props.StringProperty(
         name="Prompt",
@@ -276,6 +298,7 @@ def register_properties():
 
     bpy.utils.register_class(OPENAI_ImageToolGenerateImageProperties)
     bpy.utils.register_class(OPENAI_ImageToolEditImageProperties)
+    bpy.utils.register_class(OPENAI_ImageToolGenerateVariationImageProperties)
     bpy.utils.register_class(OPENAI_AudioToolTranscribeSoundStripProperties)
     bpy.utils.register_class(OPENAI_AudioToolTranscribeAudioFileProperties)
     bpy.utils.register_class(OPENAI_ChatToolProperties)
@@ -304,6 +327,15 @@ def register_properties():
     scene.openai_image_tool_edit_image_mask_image = bpy.props.PointerProperty(
         name="Mask Image",
         description="Image block to be used for the mask image",
+        type=bpy.types.Image,
+        poll=lambda _, img: img.depth // (img.is_float * 3 + 1) == 32,
+    )
+    scene.openai_image_tool_generate_variation_image_props = bpy.props.PointerProperty(
+        type=OPENAI_ImageToolGenerateVariationImageProperties
+    )
+    scene.openai_image_tool_generate_variation_image_base_image = bpy.props.PointerProperty(
+        name="Base Image",
+        description="Image block to be used for the base image",
         type=bpy.types.Image,
         poll=lambda _, img: img.depth // (img.is_float * 3 + 1) == 32,
     )
@@ -378,6 +410,8 @@ def unregister_properties():
     del scene.openai_chat_tool_conditions
     del scene.openai_chat_tool_props
 
+    del scene.openai_image_tool_generate_variation_image_base_image
+    del scene.openai_image_tool_generate_variation_image_props
     del scene.openai_image_tool_edit_image_mask_image
     del scene.openai_image_tool_edit_image_base_image
     del scene.openai_image_tool_edit_image_props
@@ -398,5 +432,6 @@ def unregister_properties():
     bpy.utils.unregister_class(OPENAI_ChatToolProperties)
     bpy.utils.unregister_class(OPENAI_AudioToolTranscribeAudioFileProperties)
     bpy.utils.unregister_class(OPENAI_AudioToolTranscribeSoundStripProperties)
+    bpy.utils.unregister_class(OPENAI_ImageToolGenerateVariationImageProperties)
     bpy.utils.unregister_class(OPENAI_ImageToolEditImageProperties)
     bpy.utils.unregister_class(OPENAI_ImageToolGenerateImageProperties)

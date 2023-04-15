@@ -120,6 +120,42 @@ class OPENAI_PT_ImageToolEditImage(bpy.types.Panel):
         col.prop(props, "num_images", text="")
 
 
+class OPENAI_PT_ImageToolGenereateVariationImage(bpy.types.Panel):
+
+    bl_region_type = 'UI'
+    bl_space_type = 'IMAGE_EDITOR'
+    bl_category = "OpenAI"
+    bl_label = "Generate Variation Image"
+    bl_parent_id = "OPENAI_PT_ImageTool"
+
+    def draw_header(self, context):
+        layout = self.layout
+
+        layout.label(text="", icon='GREASEPENCIL')
+
+    def draw(self, context):
+        layout = self.layout
+        sc = context.scene
+        props = sc.openai_image_tool_generate_variation_image_props
+
+        row = layout.row(align=True)
+        row.operator_context = 'EXEC_DEFAULT'
+        row.prop(sc, "openai_image_tool_generate_variation_image_base_image", text="")
+        ops = row.operator(image.OPENAI_OT_GenerateVariationImage.bl_idname, icon='PLAY', text="")
+        ops.num_images = props.num_images
+        ops.image_size = props.image_size
+        if sc.openai_image_tool_generate_variation_image_base_image is not None:
+            ops.base_image_name = sc.openai_image_tool_generate_variation_image_base_image.name
+
+        row = layout.row()
+        col = row.column(align=True)
+        col.label(text="Size:")
+        col.prop(props, "image_size", text="")
+        col = row.column(align=True)
+        col.label(text="Num:")
+        col.prop(props, "num_images", text="")
+
+
 class OPENAI_PT_ImageToolGeneratedImages(bpy.types.Panel):
 
     bl_region_type = 'UI'
