@@ -18,8 +18,7 @@ classes = [
     audio.OPENAI_OT_TranscribeAudioFile,
     audio.OPENAI_OT_TranscribeSoundStrip,
 
-    chat.OPENAI_OT_AskOperatorUsage,
-    chat.OPENAI_OT_AskPropertyUsage,
+    chat.OPENAI_OT_Ask,
     chat.OPENAI_ChatOperatorConditionProperties,
     chat.OPENAI_OT_Chat,
     chat.OPENAI_OT_AddChatCondition,
@@ -30,6 +29,7 @@ classes = [
     chat.OPENAI_OT_RemoveChat,
     chat.OPENAI_OT_CopyChatCodeError,
 
+    code.OPENAI_OT_GenerateCodeExample,
     code.OPENAI_OT_AddCodeCondition,
     code.OPENAI_OT_RemoveCodeCondition,
     code.OPENAI_OT_RunCode,

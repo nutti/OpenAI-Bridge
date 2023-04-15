@@ -15,16 +15,18 @@ from ..utils.threading import (
 from ..utils import error_storage
 
 
-class OPENAI_OT_AskOperatorUsage(bpy.types.Operator):
+class OPENAI_OT_Ask(bpy.types.Operator):
 
-    bl_idname = "system.openai_ask_operator_usage"
-    bl_description = "Ask the usage of the mouse focussed operator"
-    bl_label = "Ask Operator Usage"
+    bl_idname = "system.openai_ask"
+    bl_description = "Ask the mouse focussed operator/property"
+    bl_label = "Ask"
     bl_options = {'REGISTER'}
 
     @classmethod
     def poll(cls, context):
         if hasattr(context, "button_operator"):
+            return True
+        if hasattr(context, "button_prop") and hasattr(context, "button_pointer"):
             return True
 
         return False
@@ -34,101 +36,58 @@ class OPENAI_OT_AskOperatorUsage(bpy.types.Operator):
         prefs = user_prefs.addons["openai_bridge"].preferences
         api_key = prefs.api_key
 
-        if not hasattr(context, "button_operator"):
-            self.report({'WARNING'}, "Failed to find the operator")
+        if hasattr(context, "button_operator"):
+            kind = 'OPERATOR'
+        elif hasattr(context, "button_prop") and hasattr(context, "button_pointer"):
+            kind = 'PROPERTY'
+        else:
+            self.report({'WARNING'}, "The execution condition does not meet the requirement.")
             return {'FINISHED'}
-
-        op = context.button_operator
-        sp = op.bl_rna.identifier.split("_")
-        py_op_func = f"bpy.ops.{sp[0].lower()}.{sp[2].lower()}()"
-        op_desc = op.bl_rna.description
-        op_name = op.bl_rna.name
 
         request = {
             "model": prefs.chat_tool_model,
-            "messages": [
-                {
-                    "role": "user",
-                    "content": f"Explain about the operator '{op_name}'"
-                },
-            ]
+            "messages": []
+        }
+        options = {
+            "new_topic": True,
         }
 
-        options = {
-            "topic": f"Ask Operator '{op_name}'",
-            "new_topic": True,
-            "hidden_conditions": [
+        if kind == 'OPERATOR':
+            op = context.button_operator
+            sp = op.bl_rna.identifier.split("_", maxsplit=2)
+            py_op_func = f"bpy.ops.{sp[0].lower()}.{sp[2].lower()}()"
+            op_desc = op.bl_rna.description
+            op_name = op.bl_rna.name
+
+            request["messages"].append({
+                "role": "user",
+                "content": f"Explain about the operator '{op_name}'"
+            })
+            options["topic"] = f"Ask Operator '{op_name}'"
+            options["hidden_conditions"] = [
                 "This question relates to the Blender",
                 "Avoid Python code",
                 f"Python API to call operator: {py_op_func}",
                 f"Operator description in Blender Application: {op_desc}",
             ]
-        }
+        elif kind == 'PROPERTY':
+            ptr = context.button_pointer
+            prop = context.button_prop
 
-        if not prefs.async_execution:
-            sync_request(api_key, 'CHAT', request, options, context, self)
-        else:
-            transaction_data = {
-                "type": 'CHAT',
-                "title": options["topic"][0:32],
-            }
-            async_request(api_key, 'CHAT', request, options, transaction_data)
-            # Run Message Processing Timer if it has not launched yet.
-            bpy.ops.system.openai_process_message()
+            class_name = ptr.bl_rna.name
+            class_desc = ptr.bl_rna.description
+            py_class = f"bpy.types.{ptr.bl_rna.identifier}"
+            prop_name = prop.name
+            prop_desc = prop.description
+            py_prop_name = prop.identifier
 
-        print(f"Sent Request: f{request}")
-        return {'FINISHED'}
+            request["messages"].append({
+                "role": "user",
+                "content": f"Explain about the property '{prop_name}' of class '{class_name}'"
+            })
 
-
-class OPENAI_OT_AskPropertyUsage(bpy.types.Operator):
-
-    bl_idname = "system.openai_ask_property_usage"
-    bl_description = "Ask the usage of the mouse focussed property"
-    bl_label = "Ask Property Usage"
-    bl_options = {'REGISTER'}
-
-    @classmethod
-    def poll(cls, context):
-        if not hasattr(context, "button_prop"):
-            return False
-        if not hasattr(context, "button_pointer"):
-            return False
-
-        return True
-
-    def execute(self, context):
-        user_prefs = context.preferences
-        prefs = user_prefs.addons["openai_bridge"].preferences
-        api_key = prefs.api_key
-
-        if not hasattr(context, "button_pointer") or not hasattr(context, "button_prop"):
-            self.report({'WARNING'}, "Failed to find the pointer or property")
-            return {'CANCELLED'}
-
-        ptr = context.button_pointer
-        prop = context.button_prop
-
-        class_name = ptr.bl_rna.name
-        class_desc = ptr.bl_rna.description
-        py_class = f"bpy.types.{ptr.bl_rna.identifier}"
-        prop_name = prop.name
-        prop_desc = prop.description
-        py_prop_name = prop.identifier
-
-        request = {
-            "model": prefs.chat_tool_model,
-            "messages": [
-                {
-                    "role": "user",
-                    "content": f"Explain about the property '{prop_name}' of class '{class_name}'"
-                },
-            ]
-        }
-
-        options = {
-            "topic": f"Ask Property '{prop_name}' of '{class_name}'",
-            "new_topic": True,
-            "hidden_conditions": [
+            options["topic"] = f"Ask Property '{prop_name}' of '{class_name}'"
+            options["hidden_conditions"] = [
                 "This question relates to the Blender",
                 "Avoid Python code",
                 f"Class description in Blender Application: {class_desc}",
@@ -136,7 +95,6 @@ class OPENAI_OT_AskPropertyUsage(bpy.types.Operator):
                 f"Property description in Blender Application: {prop_desc}",
                 f"Python API for property: {py_prop_name}",
             ]
-        }
 
         if not prefs.async_execution:
             sync_request(api_key, 'CHAT', request, options, context, self)

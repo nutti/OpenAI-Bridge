@@ -29,10 +29,12 @@ else:
 
 
 def menu_func(self, context):
+    sc = context.scene
     layout = self.layout
+
     layout.separator()
-    layout.operator(op.chat.OPENAI_OT_AskOperatorUsage.bl_idname)
-    layout.operator(op.chat.OPENAI_OT_AskPropertyUsage.bl_idname)
+    layout.operator(op.chat.OPENAI_OT_Ask.bl_idname, icon_value=sc.openai_icon_collection["openai_base"].icon_id)
+    layout.operator(op.code.OPENAI_OT_GenerateCodeExample.bl_idname, icon_value=sc.openai_icon_collection["openai_base"].icon_id)
 
 
 def register():

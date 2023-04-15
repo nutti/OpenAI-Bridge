@@ -20,6 +20,93 @@ from ..utils.threading import (
 from ..utils import error_storage
 
 
+class OPENAI_OT_GenerateCodeExample(bpy.types.Operator):
+
+    bl_idname = "system.openai_generate_code_example"
+    bl_description = "Generate Python code example for Python API"
+    bl_label = "Generate Code Example"
+    bl_options = {'REGISTER'}
+
+    @classmethod
+    def poll(cls, context):
+        if hasattr(context, "button_operator"):
+            return True
+        if hasattr(context, "button_prop") and hasattr(context, "button_pointer"):
+            return True
+
+        return False
+
+    def execute(self, context):
+        user_prefs = context.preferences
+        prefs = user_prefs.addons["openai_bridge"].preferences
+        api_key = prefs.api_key
+
+        if hasattr(context, "button_operator"):
+            kind = 'OPERATOR'
+        elif hasattr(context, "button_prop") and hasattr(context, "button_pointer"):
+            kind = 'PROPERTY'
+        else:
+            self.report({'WARNING'}, "The execution condition does not meet the requirement.")
+            return {'FINISHED'}
+
+        request = {
+            "model": prefs.code_tool_model,
+            "messages": []
+        }
+
+        conditions_for_bpy_code = [
+            "Programming Language: Python",
+            "Use Blender Python API",
+        ]
+        for condition in conditions_for_bpy_code:
+            request["messages"].extend([
+                {
+                    "role": "system",
+                    "content": condition
+                }
+            ])
+
+        options = {
+            "execute_immediately": False,
+            "show_text_editor": True,
+        }
+
+        if kind == 'OPERATOR':
+            op = context.button_operator
+            sp = op.bl_rna.identifier.split("_", maxsplit=2)
+            py_op_func = f"bpy.ops.{sp[0].lower()}.{sp[2].lower()}()"
+
+            request["messages"].append({
+                "role": "user",
+                "content": f"Create example code which use '{py_op_func}'."
+            })
+            options["code"] = f"[Example] {py_op_func}"
+        elif kind == 'PROPERTY':
+            ptr = context.button_pointer
+            prop = context.button_prop
+            py_class = f"bpy.types.{ptr.bl_rna.identifier}"
+            py_prop_name = prop.identifier
+            request["messages"].append({
+                "role": "user",
+                "content": f"Create example code which use the property '{py_prop_name}' of '{py_class}'."
+            })
+            options["code"] = f"[Example] {py_class}.{py_prop_name}"
+
+        if not prefs.async_execution:
+            sync_request(api_key, 'CODE', request, options, context, self)
+        else:
+            transaction_data = {
+                "type": 'CODE',
+                "title": options["code"],
+            }
+            async_request(api_key, 'CODE', request, options, transaction_data)
+            # Run Message Processing Timer if it has not launched yet.
+            bpy.ops.system.openai_process_message()
+
+        print(f"Sent Request: f{request}")
+        return {'FINISHED'}
+
+
 class OPENAI_OT_AddCodeCondition(bpy.types.Operator):
 
     bl_idname = "system.openai_add_code_condition"
