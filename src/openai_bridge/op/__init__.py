@@ -15,7 +15,7 @@ import bpy
 
 classes = [
     audio.OPENAI_OT_OpenAudioFile,
-    audio.OPENAI_OT_TranscribeAudio,
+    audio.OPENAI_OT_TranscribeAudioFile,
     audio.OPENAI_OT_TranscribeSoundStrip,
 
     chat.OPENAI_OT_AskOperatorUsage,
@@ -37,8 +37,9 @@ classes = [
     code.OPENAI_OT_RemoveCode,
     code.OPENAI_OT_CopyCodeError,
     code.OPENAI_CodeConditionPropertyCollection,
-    code.OPENAI_OT_Code,
-    code.OPENAI_OT_CodeFromAudio,
+    code.OPENAI_OT_GenerateCode,
+    code.OPENAI_OT_GenerateCodeFromAudio,
+    code.OPENAI_OT_EditCode,
 
     image.OPENAI_OT_GeneateImage,
     image.OPENAI_OT_EditImage,

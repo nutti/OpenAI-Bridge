@@ -102,6 +102,13 @@ class OPENAI_OT_ProcessMessage(bpy.types.Operator):
             filepath = f"{CODE_DATA_DIR}/{options['code']}.py"
             with open(filepath, "r", encoding="utf-8") as f:
                 code_to_execute = f.read()
+            if options["show_text_editor"]:
+                text_data = bpy.data.texts.new(options["code"])
+                text_data.write(code_to_execute)
+                # Focus on the text in Text Editor.
+                _, _, space = get_area_region_space(context, 'TEXT_EDITOR', 'WINDOW', 'TEXT_EDITOR')
+                if space is not None:
+                    space.text = text_data
             if options["execute_immediately"]:
                 try:
                     exec(code_to_execute)
@@ -475,6 +482,10 @@ class RequestHandler:
         OPENAI_OT_ProcessMessage.process(transaction_id, 'END_OF_TRANSACTION', None, None, sync=sync, context=context, operator_instance=operator_instance)
 
     @classmethod
+    def handle_edit_code_request(cls, api_key, transaction_id, req_data, options, sync, context=None, operator_instance=None):
+        cls.handle_code_request(api_key, transaction_id, req_data, options, sync, context, operator_instance)
+
+    @classmethod
     def handle_audio_code_request(cls, api_key, transaction_id, req_data, options, sync, context=None, operator_instance=None):
         # Send audio.
         audio_request = {
@@ -546,6 +557,8 @@ class RequestHandler:
             cls.handle_chat_request(api_key, transaction_id, req_data, options, sync=sync, context=context, operator_instance=operator_instance)
         elif req_type == 'CODE':
             cls.handle_code_request(api_key, transaction_id, req_data, options, sync=sync, context=context, operator_instance=operator_instance)
+        elif req_type == 'EDIT_CODE':
+            cls.handle_edit_code_request(api_key, transaction_id, req_data, options, sync=sync, context=context, operator_instance=operator_instance)
         elif req_type == 'AUDIO_CODE':
             cls.handle_audio_code_request(api_key, transaction_id, req_data, options, sync=sync, context=context, operator_instance=operator_instance)
 

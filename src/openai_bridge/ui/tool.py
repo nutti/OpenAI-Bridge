@@ -7,13 +7,13 @@ from ..op.image import (
 from ..op.audio import OPENAI_OT_TranscribeSoundStrip
 from ..op.chat import OPENAI_OT_Chat
 from ..op.code import (
-    OPENAI_OT_Code,
-    OPENAI_OT_CodeFromAudio,
+    OPENAI_OT_GenerateCode,
+    OPENAI_OT_GenerateCodeFromAudio,
 )
 from ..utils.common import ICON_DIR
 
 
-class OPENAI_WST_OpenAIImageTool(bpy.types.WorkSpaceTool):
+class OPENAI_WST_ImageTool(bpy.types.WorkSpaceTool):
 
     bl_idname = "openai.openai_image_tool"
     bl_label = "OpenAI Image Tool"
@@ -42,7 +42,7 @@ class OPENAI_WST_OpenAIImageTool(bpy.types.WorkSpaceTool):
         layout.prop(prefs, "async_execution")
 
 
-class OPENAI_WST_OpenAIAudioTool(bpy.types.WorkSpaceTool):
+class OPENAI_WST_AudioTool(bpy.types.WorkSpaceTool):
 
     bl_idname = "openai.openai_audio_tool"
     bl_label = "OpenAI Audio Tool"
@@ -66,7 +66,7 @@ class OPENAI_WST_OpenAIAudioTool(bpy.types.WorkSpaceTool):
         layout.prop(prefs, "async_execution")
 
 
-class OPENAI_WST_OpenAIChatTool(bpy.types.WorkSpaceTool):
+class OPENAI_WST_ChatTool(bpy.types.WorkSpaceTool):
 
     bl_idname = "openai.openai_chat_tool"
     bl_label = "OpenAI Chat Tool"
@@ -95,7 +95,7 @@ class OPENAI_WST_OpenAIChatTool(bpy.types.WorkSpaceTool):
         layout.prop(props, "num_conditions")
 
 
-class OPENAI_WST_OpenAICodeTool(bpy.types.WorkSpaceTool):
+class OPENAI_WST_CodeTool(bpy.types.WorkSpaceTool):
 
     bl_idname = "openai.openai_code_tool"
     bl_label = "OpenAI Code Tool"
@@ -106,19 +106,19 @@ class OPENAI_WST_OpenAICodeTool(bpy.types.WorkSpaceTool):
 
     bl_keymap = (
         (
-            OPENAI_OT_Code.bl_idname,
+            OPENAI_OT_GenerateCode.bl_idname,
             {"type": 'SPACE', "value": 'PRESS'},
-            {"properties": [("mode", 'GENERATE'), ("execute_immediately", True)]},
+            {"properties": [("execute_immediately", True)]},
         ),
         (
-            OPENAI_OT_CodeFromAudio.bl_idname,
+            OPENAI_OT_GenerateCodeFromAudio.bl_idname,
             {"type": 'A', "value": 'PRESS', "shift": True},
             {},
         ),
     )
 
     def draw_settings(context, layout, tool):
-        props = tool.operator_properties(OPENAI_OT_Code.bl_idname)
+        props = tool.operator_properties(OPENAI_OT_GenerateCode.bl_idname)
         user_prefs = context.preferences
         prefs = user_prefs.addons["openai_bridge"].preferences
 
@@ -127,3 +127,5 @@ class OPENAI_WST_OpenAICodeTool(bpy.types.WorkSpaceTool):
         layout.separator()
 
         layout.prop(props, "num_conditions")
+        audio_props = tool.operator_properties(OPENAI_OT_GenerateCodeFromAudio.bl_idname)
+        audio_props.num_conditions = props.num_conditions

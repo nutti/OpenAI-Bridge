@@ -55,7 +55,7 @@ class OPENAI_OT_TranscribeSoundStrip(bpy.types.Operator):
     def draw(self, context):
         layout = self.layout
         sc = context.scene
-        props = sc.openai_audio_tool_props
+        props = sc.openai_audio_tool_transcribe_sound_strip_props
 
         layout.prop(props, "prompt")
 
@@ -144,16 +144,16 @@ class OPENAI_OT_OpenAudioFile(bpy.types.Operator, ImportHelper):
     def execute(self, context):
         sc = context.scene
 
-        sc.openai_audio_tool_audio_props.source_audio_filepath = self.properties.filepath
+        sc.openai_audio_tool_transcribe_audio_file_props.source_audio_filepath = self.properties.filepath
 
         context.area.tag_redraw()
 
         return {'FINISHED'}
 
 
-class OPENAI_OT_TranscribeAudio(bpy.types.Operator):
+class OPENAI_OT_TranscribeAudioFile(bpy.types.Operator):
 
-    bl_idname = "system.openai_transcribe_audio"
+    bl_idname = "system.openai_transcribe_audio_file"
     bl_description = "Transcribe the audio via OpenAI API"
     bl_label = "Transcribe Audio"
     bl_options = {'REGISTER'}

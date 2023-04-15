@@ -10,7 +10,7 @@ from .utils.common import (
 )
 
 
-class OPENAI_ImageToolProperties(bpy.types.PropertyGroup):
+class OPENAI_ImageToolGenerateImageProperties(bpy.types.PropertyGroup):
     prompt: bpy.props.StringProperty(
         name="Property"
     )
@@ -67,7 +67,7 @@ class OPENAI_ImageToolProperties(bpy.types.PropertyGroup):
     )
 
 
-class OPENAI_EditImageProperties(bpy.types.PropertyGroup):
+class OPENAI_ImageToolEditImageProperties(bpy.types.PropertyGroup):
     prompt: bpy.props.StringProperty(
         name="Property"
     )
@@ -89,7 +89,7 @@ class OPENAI_EditImageProperties(bpy.types.PropertyGroup):
     )
 
 
-class OPENAI_AudioToolProperties(bpy.types.PropertyGroup):
+class OPENAI_AudioToolTranscribeSoundStripProperties(bpy.types.PropertyGroup):
     prompt: bpy.props.StringProperty(
         name="Prompt",
     )
@@ -143,7 +143,7 @@ class OPENAI_AudioToolProperties(bpy.types.PropertyGroup):
     )
 
 
-class OPENAI_AudioToolAudioProperties(bpy.types.PropertyGroup):
+class OPENAI_AudioToolTranscribeAudioFileProperties(bpy.types.PropertyGroup):
     prompt: bpy.props.StringProperty(
         name="Prompt",
     )
@@ -233,7 +233,7 @@ class OPENAI_ChatToolConditions(bpy.types.PropertyGroup):
     )
 
 
-class OPENAI_CodeToolProperties(bpy.types.PropertyGroup):
+class OPENAI_CodeToolGenerateCodeProperties(bpy.types.PropertyGroup):
     prompt: bpy.props.StringProperty(
         name="Prompt",
     )
@@ -251,13 +251,17 @@ class OPENAI_CodeToolProperties(bpy.types.PropertyGroup):
         min=0,
         max=10,
     )
-    mode: bpy.props.EnumProperty(
-        name="Mode",
-        items=[
-            ('GENERATE', "Generate", "Generate the code from the prompt"),
-            ('FIX', "Fix", "Fix the code from the error message"),
-        ],
-        default='GENERATE',
+
+
+class OPENAI_CodeToolEditCodeProperties(bpy.types.PropertyGroup):
+    prompt: bpy.props.StringProperty(
+        name="Prompt",
+    )
+    num_conditions: bpy.props.IntProperty(
+        name="Number of Conditions",
+        default=1,
+        min=0,
+        max=10,
     )
 
 
@@ -270,33 +274,34 @@ class OPENAI_CodeToolConditions(bpy.types.PropertyGroup):
 def register_properties():
     scene = bpy.types.Scene
 
-    bpy.utils.register_class(OPENAI_ImageToolProperties)
-    bpy.utils.register_class(OPENAI_EditImageProperties)
-    bpy.utils.register_class(OPENAI_AudioToolProperties)
-    bpy.utils.register_class(OPENAI_AudioToolAudioProperties)
+    bpy.utils.register_class(OPENAI_ImageToolGenerateImageProperties)
+    bpy.utils.register_class(OPENAI_ImageToolEditImageProperties)
+    bpy.utils.register_class(OPENAI_AudioToolTranscribeSoundStripProperties)
+    bpy.utils.register_class(OPENAI_AudioToolTranscribeAudioFileProperties)
     bpy.utils.register_class(OPENAI_ChatToolProperties)
     bpy.utils.register_class(OPENAI_ChatToolConditions)
-    bpy.utils.register_class(OPENAI_CodeToolProperties)
+    bpy.utils.register_class(OPENAI_CodeToolGenerateCodeProperties)
     bpy.utils.register_class(OPENAI_CodeToolConditions)
+    bpy.utils.register_class(OPENAI_CodeToolEditCodeProperties)
 
     scene.openai_icon_collection = bpy.utils.previews.new()
     scene.openai_icon_collection.load("openai_base", f"{ICON_DIR}/openai_base.png", 'IMAGE')
 
     # Properties for Image Tool.
-    scene.openai_image_tool_props = bpy.props.PointerProperty(
-        type=OPENAI_ImageToolProperties
+    scene.openai_image_tool_generate_image_props = bpy.props.PointerProperty(
+        type=OPENAI_ImageToolGenerateImageProperties
     )
     scene.openai_image_tool_image_collection = bpy.utils.previews.new()
-    scene.openai_edit_image_props = bpy.props.PointerProperty(
-        type=OPENAI_EditImageProperties
+    scene.openai_image_tool_edit_image_props = bpy.props.PointerProperty(
+        type=OPENAI_ImageToolEditImageProperties
     )
-    scene.openai_edit_image_base_image = bpy.props.PointerProperty(
+    scene.openai_image_tool_edit_image_base_image = bpy.props.PointerProperty(
         name="Base Image",
         description="Image block to be used for the base image",
         type=bpy.types.Image,
         poll=lambda _, img: img.depth // (img.is_float * 3 + 1) == 32,
     )
-    scene.openai_edit_image_mask_image = bpy.props.PointerProperty(
+    scene.openai_image_tool_edit_image_mask_image = bpy.props.PointerProperty(
         name="Mask Image",
         description="Image block to be used for the mask image",
         type=bpy.types.Image,
@@ -304,11 +309,11 @@ def register_properties():
     )
 
     # Properties for Audio Tool.
-    scene.openai_audio_tool_props = bpy.props.PointerProperty(
-        type=OPENAI_AudioToolProperties,
+    scene.openai_audio_tool_transcribe_sound_strip_props = bpy.props.PointerProperty(
+        type=OPENAI_AudioToolTranscribeSoundStripProperties,
     )
-    scene.openai_audio_tool_audio_props = bpy.props.PointerProperty(
-        type=OPENAI_AudioToolAudioProperties,
+    scene.openai_audio_tool_transcribe_audio_file_props = bpy.props.PointerProperty(
+        type=OPENAI_AudioToolTranscribeAudioFileProperties,
     )
     scene.openai_audio_tool_target_text = bpy.props.PointerProperty(
         name="Target Text",
@@ -330,11 +335,29 @@ def register_properties():
 
     # Properties for Code Tool.
     scene.openai_code_tool_props = bpy.props.PointerProperty(
-        type=OPENAI_CodeToolProperties,
+        type=OPENAI_CodeToolGenerateCodeProperties,
     )
     scene.openai_code_tool_conditions = bpy.props.CollectionProperty(
         name="Conditions",
         type=OPENAI_CodeToolConditions,
+    )
+    scene.openai_code_tool_generate_code_props = bpy.props.PointerProperty(
+        type=OPENAI_CodeToolGenerateCodeProperties,
+    )
+    scene.openai_code_tool_generate_code_conditions = bpy.props.CollectionProperty(
+        name="Conditions",
+        type=OPENAI_CodeToolConditions,
+    )
+    scene.openai_code_tool_edit_code_props = bpy.props.PointerProperty(
+        type=OPENAI_CodeToolEditCodeProperties,
+    )
+    scene.openai_code_tool_edit_code_conditions = bpy.props.CollectionProperty(
+        name="Conditions",
+        type=OPENAI_CodeToolConditions,
+    )
+    scene.openai_code_tool_edit_code_edit_target_text_block = bpy.props.PointerProperty(
+        name="Edit Target Text Block",
+        type=bpy.types.Text,
     )
 
 
@@ -344,30 +367,36 @@ def unregister_properties():
     bpy.utils.previews.remove(scene.openai_icon_collection)
     bpy.utils.previews.remove(scene.openai_image_tool_image_collection)
 
+    del scene.openai_code_tool_edit_code_edit_target_text_block
+    del scene.openai_code_tool_edit_code_conditions
+    del scene.openai_code_tool_edit_code_props
+    del scene.openai_code_tool_generate_code_conditions
+    del scene.openai_code_tool_generate_code_props
     del scene.openai_code_tool_conditions
     del scene.openai_code_tool_props
 
     del scene.openai_chat_tool_conditions
     del scene.openai_chat_tool_props
 
-    del scene.openai_edit_image_mask_image
-    del scene.openai_edit_image_base_image
-    del scene.openai_edit_image_props
+    del scene.openai_image_tool_edit_image_mask_image
+    del scene.openai_image_tool_edit_image_base_image
+    del scene.openai_image_tool_edit_image_props
+    del scene.openai_image_tool_generate_image_props
     del scene.openai_image_tool_image_collection
-    del scene.openai_image_tool_props
 
     del scene.openai_audio_tool_source_sound_data_block
     del scene.openai_audio_tool_target_text
-    del scene.openai_audio_tool_audio_props
-    del scene.openai_audio_tool_props
+    del scene.openai_audio_tool_transcribe_audio_file_props
+    del scene.openai_audio_tool_transcribe_sound_strip_props
 
     del scene.openai_icon_collection
 
+    bpy.utils.unregister_class(OPENAI_CodeToolEditCodeProperties)
     bpy.utils.unregister_class(OPENAI_CodeToolConditions)
-    bpy.utils.unregister_class(OPENAI_CodeToolProperties)
+    bpy.utils.unregister_class(OPENAI_CodeToolGenerateCodeProperties)
     bpy.utils.unregister_class(OPENAI_ChatToolConditions)
     bpy.utils.unregister_class(OPENAI_ChatToolProperties)
-    bpy.utils.unregister_class(OPENAI_AudioToolAudioProperties)
-    bpy.utils.unregister_class(OPENAI_AudioToolProperties)
-    bpy.utils.unregister_class(OPENAI_EditImageProperties)
-    bpy.utils.unregister_class(OPENAI_ImageToolProperties)
+    bpy.utils.unregister_class(OPENAI_AudioToolTranscribeAudioFileProperties)
+    bpy.utils.unregister_class(OPENAI_AudioToolTranscribeSoundStripProperties)
+    bpy.utils.unregister_class(OPENAI_ImageToolEditImageProperties)
+    bpy.utils.unregister_class(OPENAI_ImageToolGenerateImageProperties)

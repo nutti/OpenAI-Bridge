@@ -27,10 +27,28 @@ class OPENAI_OT_AddCodeCondition(bpy.types.Operator):
     bl_label = "Add Coe Condition"
     bl_options = {'REGISTER'}
 
+    target: bpy.props.EnumProperty(
+        name="Target",
+        description="Remove target",
+        items=[
+            ('CODE_TOOL', "Code Tool", "Code Tool"),
+            ('GENERATE_CODE', "Generate Code", "Generate Code"),
+            ('FIX_CODE',  "Fix Code", "Fix Code"),
+        ],
+        default='CODE_TOOL',
+    )
+
     def execute(self, context):
         sc = context.scene
 
-        sc.openai_code_tool_conditions.add()
+        if self.target == 'CODE_TOOL':
+            sc.openai_code_tool_conditions.add()
+        elif self.target == 'GENERATE_CODE':
+            sc.openai_code_tool_generate_code_conditions.add()
+        elif self.target == 'FIX_CODE':
+            sc.openai_code_tool_edit_code_conditions.add()
+        else:
+            return {'CANCELLED'}
 
         return {'FINISHED'}
 
@@ -47,11 +65,28 @@ class OPENAI_OT_RemoveCodeCondition(bpy.types.Operator):
         default=0,
         min=0,
     )
+    target: bpy.props.EnumProperty(
+        name="Target",
+        description="Remove target",
+        items=[
+            ('CODE_TOOL', "Code Tool", "Code Tool"),
+            ('GENERATE_CODE', "Generate Code", "Generate Code"),
+            ('FIX_CODE',  "Fix Code", "Fix Code"),
+        ],
+        default='CODE_TOOL',
+    )
 
     def execute(self, context):
         sc = context.scene
 
-        sc.openai_code_tool_conditions.remove(self.index_to_remove)
+        if self.target == 'CODE_TOOL':
+            sc.openai_code_tool_conditions.remove(self.index_to_remove)
+        elif self.target == 'GENERATE_CODE':
+            sc.openai_code_tool_generate_code_conditions.remove(self.index_to_remove)
+        elif self.target == 'FIX_CODE':
+            sc.openai_code_tool_edit_code_conditions.remove(self.index_to_remove)
+        else:
+            return {'CANCELLED'}
 
         return {'FINISHED'}
 
@@ -174,11 +209,11 @@ class OPENAI_CodeConditionPropertyCollection(bpy.types.PropertyGroup):
     )
 
 
-class OPENAI_OT_CodeFromAudio(bpy.types.Operator):
+class OPENAI_OT_GenerateCodeFromAudio(bpy.types.Operator):
 
-    bl_idname = "system.openai_code_from_audio"
-    bl_description = "Execute code from audio via OpenAI API"
-    bl_label = "Code from Audio"
+    bl_idname = "system.openai_generate_code_from_audio"
+    bl_description = "Generate code from audio via OpenAI API"
+    bl_label = "Generate Code from Audio"
     bl_options = {'REGISTER'}
 
     num_conditions: bpy.props.IntProperty(
@@ -270,7 +305,6 @@ class OPENAI_OT_CodeFromAudio(bpy.types.Operator):
             "audio_file": record_filename,
             "audio_model": prefs.audio_tool_model,
             "audio_language": prefs.code_tool_audio_language,
-            "mode": 'GENERATE',
             "execute_immediately": True,
         }
 
@@ -347,11 +381,11 @@ class OPENAI_OT_CodeFromAudio(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
-class OPENAI_OT_Code(bpy.types.Operator):
+class OPENAI_OT_GenerateCode(bpy.types.Operator):
 
-    bl_idname = "system.openai_code"
+    bl_idname = "system.openai_generate_code"
     bl_description = "Generate code via OpenAI API"
-    bl_label = "Code"
+    bl_label = "Generate Code"
     bl_options = {'REGISTER'}
 
     prompt: bpy.props.StringProperty(
@@ -366,15 +400,6 @@ class OPENAI_OT_Code(bpy.types.Operator):
     conditions: bpy.props.CollectionProperty(
         name="Conditions",
         type=OPENAI_CodeConditionPropertyCollection,
-    )
-
-    mode: bpy.props.EnumProperty(
-        name="Mode",
-        items=[
-            ('GENERATE', "Generate", "Generate the code from the prompt"),
-            ('FIX', "Fix", "Fix the code from the error message"),
-        ],
-        default='GENERATE',
     )
 
     execute_immediately: bpy.props.BoolProperty(
@@ -403,18 +428,15 @@ class OPENAI_OT_Code(bpy.types.Operator):
         name="Code",
         items=get_codes,
     )
-
-    sync: bpy.props.BoolProperty(
-        name="Sync",
-        description="Synchronous execution if true",
+    show_text_editor: bpy.props.BoolProperty(
+        name="Show Text Editor",
         default=False,
     )
 
     def draw(self, context):
         layout = self.layout
 
-        if self.mode == 'GENERATE':
-            layout.prop(self, "prompt")
+        layout.prop(self, "prompt")
 
         layout.separator()
 
@@ -449,19 +471,10 @@ class OPENAI_OT_Code(bpy.types.Operator):
             "messages": []
         }
 
-        if self.mode == 'GENERATE':
-            request["messages"].append({
-                "role": "user",
-                "content": self.prompt
-            })
-        elif self.mode == 'FIX':
-            request["messages"].append({
-                "role": "user",
-                "content": f"""
-This code raise the error. Fix and generate the code again.
-
-Error: {self.error_message}"""
-            })
+        request["messages"].append({
+            "role": "user",
+            "content": self.prompt
+        })
 
         for condition in self.conditions:
             if condition.condition != "":
@@ -487,18 +500,15 @@ Error: {self.error_message}"""
             ])
 
         options = {
-            "mode": self.mode,
             "execute_immediately": self.execute_immediately,
+            "show_text_editor": self.show_text_editor,
         }
-        if self.mode == 'GENERATE':
-            if self.execute_immediately:
-                options["code"] = self.prompt[0:64]
-            else:
-                options["code"] = self.new_code_name
+        if self.execute_immediately:
+            options["code"] = self.prompt[0:64]
         else:
-            options["code"] = self.code
+            options["code"] = self.new_code_name
 
-        if self.sync:
+        if not prefs.async_execution:
             sync_request(api_key, 'CODE', request, options, context, self)
         else:
             transaction_data = {
@@ -506,6 +516,123 @@ Error: {self.error_message}"""
                 "title": options["code"][0:32],
             }
             async_request(api_key, 'CODE', request, options, transaction_data)
+            # Run Message Processing Timer if it has not launched yet.
+            bpy.ops.system.openai_process_message()
+
+        print(f"Sent Request: f{request}")
+        return {'FINISHED'}
+
+
+class OPENAI_OT_EditCode(bpy.types.Operator):
+
+    bl_idname = "system.openai_edit_code"
+    bl_description = "Edit code via OpenAI API"
+    bl_label = "Edit Code"
+    bl_options = {'REGISTER'}
+
+    prompt: bpy.props.StringProperty(
+        name="Prompt",
+    )
+    num_conditions: bpy.props.IntProperty(
+        name="Number of Conditions",
+        default=1,
+        min=0,
+        max=10,
+    )
+    conditions: bpy.props.CollectionProperty(
+        name="Conditions",
+        type=OPENAI_CodeConditionPropertyCollection,
+    )
+    edit_target_text_block_name: bpy.props.StringProperty(
+        name="Fix Target Text Block Name",
+    )
+
+    def draw(self, context):
+        layout = self.layout
+
+        layout.prop(self, "prompt")
+
+        layout.separator()
+
+        layout.label(text="Conditions:")
+        for i, condition in enumerate(self.conditions):
+            row = layout.row()
+            sp = row.split(factor=0.03)
+            sp.label(text="")
+            sp = sp.split(factor=1.0)
+            sp.prop(condition, "condition", text=f"{i+1}")
+
+    def invoke(self, context, event):
+        wm = context.window_manager
+        user_prefs = context.preferences
+        prefs = user_prefs.addons["openai_bridge"].preferences
+
+        self.conditions.clear()
+
+        for i in range(self.num_conditions):
+            self.conditions.add()
+
+        return wm.invoke_props_dialog(self, width=prefs.popup_menu_width)
+
+    def execute(self, context):
+        user_prefs = context.preferences
+        prefs = user_prefs.addons["openai_bridge"].preferences
+        api_key = prefs.api_key
+
+        code_body = ""
+        for line in bpy.data.texts[self.edit_target_text_block_name].lines:
+            code_body += f"{line.body}\n"
+
+        request = {
+            "model": prefs.code_tool_model,
+            "messages": []
+        }
+        request["messages"].append({
+            "role": "user",
+            "content": f"""
+Edit the [Code] from the below [Instruction].
+
+[Instruction] {self.prompt}
+
+[Code] {code_body}
+""",
+        })
+
+        for condition in self.conditions:
+            if condition.condition != "":
+                request["messages"].append(
+                    {
+                        "role": "system",
+                        "content": condition.condition
+                    }
+                )
+
+        conditions_for_bpy_code = [
+            "Programming Language: Python",
+            "Use Blender Python API",
+        ]
+        for condition in conditions_for_bpy_code:
+            request["messages"].extend([
+                {
+                    "role": "system",
+                    "content": condition
+                }
+            ])
+
+        options = {
+            "code": f"edit-{self.edit_target_text_block_name}",
+            "show_text_editor": True,
+            "execute_immediately": False,
+        }
+
+        if not prefs.async_execution:
+            sync_request(api_key, 'EDIT_CODE', request, options, context, self)
+        else:
+            transaction_data = {
+                "type": 'EDIT_CODE',
+                "title": options["code"],
+            }
+            async_request(api_key, 'EDIT_CODE', request, options, transaction_data)
             # Run Message Processing Timer if it has not launched yet.
             bpy.ops.system.openai_process_message()
 

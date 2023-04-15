@@ -32,7 +32,7 @@ class OPENAI_PT_ImageTool(bpy.types.Panel):
         pass
 
 
-class OPENAI_PT_GenerateImage(bpy.types.Panel):
+class OPENAI_PT_ImageToolGenerateImage(bpy.types.Panel):
 
     bl_region_type = 'UI'
     bl_space_type = 'IMAGE_EDITOR'
@@ -48,7 +48,7 @@ class OPENAI_PT_GenerateImage(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         sc = context.scene
-        props = sc.openai_image_tool_props
+        props = sc.openai_image_tool_generate_image_props
 
         row = layout.row(align=True)
         row.operator_context = 'EXEC_DEFAULT'
@@ -78,7 +78,7 @@ class OPENAI_PT_GenerateImage(bpy.types.Panel):
         r.enabled = not props.auto_image_name
 
 
-class OPENAI_PT_EditImage(bpy.types.Panel):
+class OPENAI_PT_ImageToolEditImage(bpy.types.Panel):
 
     bl_region_type = 'UI'
     bl_space_type = 'IMAGE_EDITOR'
@@ -94,10 +94,10 @@ class OPENAI_PT_EditImage(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         sc = context.scene
-        props = sc.openai_edit_image_props
+        props = sc.openai_image_tool_edit_image_props
 
-        layout.prop(sc, "openai_edit_image_base_image", text="Base")
-        layout.prop(sc, "openai_edit_image_mask_image", text="Mask")
+        layout.prop(sc, "openai_image_tool_edit_image_base_image", text="Base")
+        layout.prop(sc, "openai_image_tool_edit_image_mask_image", text="Mask")
 
         row = layout.row(align=True)
         row.operator_context = 'EXEC_DEFAULT'
@@ -106,10 +106,10 @@ class OPENAI_PT_EditImage(bpy.types.Panel):
         ops.prompt = props.prompt
         ops.num_images = props.num_images
         ops.image_size = props.image_size
-        if sc.openai_edit_image_base_image is not None:
-            ops.base_image_name = sc.openai_edit_image_base_image.name
-        if sc.openai_edit_image_mask_image is not None:
-            ops.mask_image_name = sc.openai_edit_image_mask_image.name
+        if sc.openai_image_tool_edit_image_base_image is not None:
+            ops.base_image_name = sc.openai_image_tool_edit_image_base_image.name
+        if sc.openai_image_tool_edit_image_mask_image is not None:
+            ops.mask_image_name = sc.openai_image_tool_edit_image_mask_image.name
 
         row = layout.row()
         col = row.column(align=True)
@@ -120,7 +120,7 @@ class OPENAI_PT_EditImage(bpy.types.Panel):
         col.prop(props, "num_images", text="")
 
 
-class OPENAI_PT_GeneratedImages(bpy.types.Panel):
+class OPENAI_PT_ImageToolGeneratedImages(bpy.types.Panel):
 
     bl_region_type = 'UI'
     bl_space_type = 'IMAGE_EDITOR'
@@ -136,7 +136,7 @@ class OPENAI_PT_GeneratedImages(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         sc = context.scene
-        props = sc.openai_image_tool_props
+        props = sc.openai_image_tool_generate_image_props
 
         row = layout.row(align=True)
         row.template_icon_view(props, "edit_target", show_labels=True)
@@ -164,7 +164,7 @@ class OPENAI_PT_AudioToolSequenceEditor(bpy.types.Panel):
         pass
 
 
-class OPENAI_PT_TranscribeSoundStrip(bpy.types.Panel):
+class OPENAI_PT_AudioToolTranscribeSoundStrip(bpy.types.Panel):
 
     bl_region_type = 'UI'
     bl_space_type = 'SEQUENCE_EDITOR'
@@ -181,7 +181,7 @@ class OPENAI_PT_TranscribeSoundStrip(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         sc = context.scene
-        props = sc.openai_audio_tool_props
+        props = sc.openai_audio_tool_transcribe_sound_strip_props
 
         layout.prop(props, "selected_sound_strip")
 
@@ -249,7 +249,7 @@ class OPENAI_PT_AudioToolTextEditor(bpy.types.Panel):
         pass
 
 
-class OPENAI_PT_TranscribeAudio(bpy.types.Panel):
+class OPENAI_PT_AudioToolTranscribeAudioFile(bpy.types.Panel):
 
     bl_region_type = 'UI'
     bl_space_type = 'TEXT_EDITOR'
@@ -266,7 +266,7 @@ class OPENAI_PT_TranscribeAudio(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         sc = context.scene
-        props = sc.openai_audio_tool_audio_props
+        props = sc.openai_audio_tool_transcribe_audio_file_props
 
         layout.prop(props, "source", expand=True)
 
@@ -281,7 +281,7 @@ class OPENAI_PT_TranscribeAudio(bpy.types.Panel):
             row.prop(sc, "openai_audio_tool_source_sound_data_block", text="")
         col = row.column(align=True)
         col.operator_context = 'EXEC_DEFAULT'
-        op = col.operator(audio.OPENAI_OT_TranscribeAudio.bl_idname, text="", icon='PLAY')
+        op = col.operator(audio.OPENAI_OT_TranscribeAudioFile.bl_idname, text="", icon='PLAY')
         op.prompt = props.prompt
         op.temperature = props.temperature
         op.language = props.language
@@ -291,7 +291,10 @@ class OPENAI_PT_TranscribeAudio(bpy.types.Panel):
             if sc.openai_audio_tool_source_sound_data_block is not None:
                 op.audio_filepath = sc.openai_audio_tool_source_sound_data_block.filepath
         if props.current_text:
-            op.target_text_name = context.space_data.text.name
+            if context.space_data.text is not None:
+                op.target_text_name = context.space_data.text.name
+            else:
+                op.target_text_name = "Untitled"
         else:
             if sc.openai_audio_tool_target_text is not None:
                 op.target_text_name = sc.openai_audio_tool_target_text.name
@@ -367,7 +370,7 @@ class OPENAI_PT_ChatTool(bpy.types.Panel):
                 op.topic = props.topic
 
 
-class OPENAI_PT_ChatPrompt(bpy.types.Panel):
+class OPENAI_PT_ChatToolPrompt(bpy.types.Panel):
 
     bl_region_type = 'UI'
     bl_space_type = 'VIEW_3D'
@@ -410,7 +413,7 @@ class OPENAI_PT_ChatPrompt(bpy.types.Panel):
             op.index_to_remove = i
 
 
-class OPENAI_PT_ChatLog(bpy.types.Panel):
+class OPENAI_PT_ChatToolLog(bpy.types.Panel):
 
     bl_region_type = 'UI'
     bl_space_type = 'VIEW_3D'
@@ -557,16 +560,15 @@ class OPENAI_PT_CodeToolPrompt(bpy.types.Panel):
         row = layout.row(align=True)
         row.operator_context = 'EXEC_DEFAULT'
         row.prop(props, "prompt", text="")
-        op = row.operator(code.OPENAI_OT_Code.bl_idname, icon='PLAY', text="")
+        op = row.operator(code.OPENAI_OT_GenerateCode.bl_idname, icon='PLAY', text="")
         op.prompt = props.prompt
-        op.mode = 'GENERATE'
         op.execute_immediately = True
-        op.sync = False
+        op.show_text_editor = False
         op.num_conditions = len(sc.openai_code_tool_conditions)
         for i, condition in enumerate(sc.openai_code_tool_conditions):
             item = op.conditions.add()
             item.condition = condition.condition
-        op = row.operator(code.OPENAI_OT_CodeFromAudio.bl_idname, icon='REC', text="")
+        op = row.operator(code.OPENAI_OT_GenerateCodeFromAudio.bl_idname, icon='REC', text="")
         op.num_conditions = len(sc.openai_code_tool_conditions)
         for i, condition in enumerate(sc.openai_code_tool_conditions):
             item = op.conditions.add()
@@ -575,21 +577,170 @@ class OPENAI_PT_CodeToolPrompt(bpy.types.Panel):
         row = layout.row()
         row.alignment = 'LEFT'
         row.label(text="Conditions:")
-        row.operator(code.OPENAI_OT_AddCodeCondition.bl_idname, text="", icon="PLUS")
+        op = row.operator(code.OPENAI_OT_AddCodeCondition.bl_idname, text="", icon="PLUS")
+        op.target = 'CODE_TOOL'
         for i, condition in enumerate(sc.openai_code_tool_conditions):
             row = layout.row()
             row.prop(condition, "condition", text=f"{i}")
             op = row.operator(code.OPENAI_OT_RemoveCodeCondition.bl_idname, text="", icon="CANCEL")
             op.index_to_remove = i
+            op.target = 'CODE_TOOL'
 
 
-class OPENAI_PT_CodeToolHistory(bpy.types.Panel):
+class OPENAI_PT_CodeToolGeneratedCode(bpy.types.Panel):
 
     bl_region_type = 'UI'
     bl_space_type = 'VIEW_3D'
     bl_category = "OpenAI"
-    bl_label = "History"
+    bl_label = "Generated Code"
     bl_parent_id = "OPENAI_PT_CodeTool"
+
+    def draw_header(self, context):
+        layout = self.layout
+
+        layout.label(text="", icon='WORDWRAP_ON')
+
+    def draw(self, context):
+        layout = self.layout
+
+        code_files = glob.glob(f"{CODE_DATA_DIR}/**/*.py", recursive=True)
+        for file in code_files:
+            code_name = os.path.splitext(os.path.basename(file))[0]
+            error_key = error_storage.get_error_key('CODE', code_name, 0, 0)
+            error_message = error_storage.get_error(error_key)
+            row = layout.row(align=True)
+            op = row.operator(code.OPENAI_OT_RunCode.bl_idname, text=code_name)
+            op.code = code_name
+            op = row.operator(code.OPENAI_OT_CopyCode.bl_idname, text="", icon='DUPLICATE')
+            op.code = code_name
+            op.target = 'CLIPBOARD'
+            op = row.operator(code.OPENAI_OT_CopyCode.bl_idname, text="", icon='TEXT')
+            op.code = code_name
+            op.target = 'TEXT'
+            op = row.operator(code.OPENAI_OT_RemoveCode.bl_idname, text="", icon='TRASH')
+            op.code = code_name
+            if error_message:
+                r = layout.row(align=True)
+                c = r.column(align=True)
+                c.alert = True
+                draw_data_on_ui_layout(context, c, [error_message])
+                c = r.column(align=True)
+                op = c.operator(code.OPENAI_OT_CopyCodeError.bl_idname, icon='DUPLICATE', text="")
+                op.code = code_name
+
+
+class OPENAI_PT_CodeToolTextEditor(bpy.types.Panel):
+
+    bl_region_type = 'UI'
+    bl_space_type = 'TEXT_EDITOR'
+    bl_category = "OpenAI"
+    bl_label = "Code Tool"
+
+    def draw_header(self, context):
+        sc = context.scene
+        layout = self.layout
+
+        layout.label(text="", icon_value=sc.openai_icon_collection["openai_base"].icon_id)
+
+    def draw(self, context):
+        pass
+
+
+class OPENAI_PT_CodeToolGenerateCode(bpy.types.Panel):
+
+    bl_region_type = 'UI'
+    bl_space_type = 'TEXT_EDITOR'
+    bl_category = "OpenAI"
+    bl_label = "Generate Code"
+    bl_parent_id = "OPENAI_PT_CodeToolTextEditor"
+
+    def draw_header(self, context):
+        layout = self.layout
+
+        layout.label(text="", icon='CONSOLE')
+
+    def draw(self, context):
+        layout = self.layout
+        sc = context.scene
+        props = sc.openai_code_tool_generate_code_props
+
+        row = layout.row(align=True)
+        row.operator_context = 'EXEC_DEFAULT'
+        row.prop(props, "prompt", text="")
+        op = row.operator(code.OPENAI_OT_GenerateCode.bl_idname, icon='PLAY', text="")
+        op.prompt = props.prompt
+        op.execute_immediately = False
+        op.show_text_editor = True
+        op.num_conditions = len(sc.openai_code_tool_generate_code_conditions)
+        for i, condition in enumerate(sc.openai_code_tool_generate_code_conditions):
+            item = op.conditions.add()
+            item.condition = condition.condition
+
+        row = layout.row()
+        row.alignment = 'LEFT'
+        row.label(text="Conditions:")
+        op = row.operator(code.OPENAI_OT_AddCodeCondition.bl_idname, text="", icon="PLUS")
+        op.target = 'GENERATE_CODE'
+        for i, condition in enumerate(sc.openai_code_tool_generate_code_conditions):
+            row = layout.row()
+            row.prop(condition, "condition", text=f"{i}")
+            op = row.operator(code.OPENAI_OT_RemoveCodeCondition.bl_idname, text="", icon="CANCEL")
+            op.index_to_remove = i
+            op.target = 'GENERATE_CODE'
+
+
+class OPENAI_PT_CodeToolEditCode(bpy.types.Panel):
+
+    bl_region_type = 'UI'
+    bl_space_type = 'TEXT_EDITOR'
+    bl_category = "OpenAI"
+    bl_label = "Edit Code"
+    bl_parent_id = "OPENAI_PT_CodeToolTextEditor"
+
+    def draw_header(self, context):
+        layout = self.layout
+
+        layout.label(text="", icon='GREASEPENCIL')
+
+    def draw(self, context):
+        layout = self.layout
+        sc = context.scene
+        props = sc.openai_code_tool_edit_code_props
+
+        layout.prop(sc, "openai_code_tool_edit_code_edit_target_text_block", text="Edit")
+
+        row = layout.row(align=True)
+        row.operator_context = 'EXEC_DEFAULT'
+        row.prop(props, "prompt", text="")
+        op = row.operator(code.OPENAI_OT_EditCode.bl_idname, icon='PLAY', text="")
+        op.prompt = props.prompt
+        if sc.openai_code_tool_edit_code_edit_target_text_block is not None:
+            op.edit_target_text_block_name = sc.openai_code_tool_edit_code_edit_target_text_block.name
+        op.num_conditions = len(sc.openai_code_tool_edit_code_conditions)
+        for i, condition in enumerate(sc.openai_code_tool_edit_code_conditions):
+            item = op.conditions.add()
+            item.condition = condition.condition
+
+        row = layout.row()
+        row.alignment = 'LEFT'
+        row.label(text="Conditions:")
+        op = row.operator(code.OPENAI_OT_AddCodeCondition.bl_idname, text="", icon="PLUS")
+        op.target = 'FIX_CODE'
+        for i, condition in enumerate(sc.openai_code_tool_edit_code_conditions):
+            row = layout.row()
+            row.prop(condition, "condition", text=f"{i}")
+            op = row.operator(code.OPENAI_OT_RemoveCodeCondition.bl_idname, text="", icon="CANCEL")
+            op.index_to_remove = i
+            op.target = 'FIX_CODE'
+
+
+class OPENAI_PT_CodeToolGeneratedCodeTextEditor(bpy.types.Panel):
+
+    bl_region_type = 'UI'
+    bl_space_type = 'TEXT_EDITOR'
+    bl_category = "OpenAI"
+    bl_label = "Generated Code"
+    bl_parent_id = "OPENAI_PT_CodeToolTextEditor"
 
     def draw_header(self, context):
         layout = self.layout
