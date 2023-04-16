@@ -293,6 +293,58 @@ class OPENAI_CodeToolConditions(bpy.types.PropertyGroup):
     )
 
 
+class OPENAI_UsageStatisticsImageTool(bpy.types.PropertyGroup):
+    images_1024x1024: bpy.props.IntProperty(
+        name="1024x1024 Images",
+        default=0,
+    )
+    images_512x512: bpy.props.IntProperty(
+        name="512x512 Images",
+        default=0,
+    )
+    images_256x256: bpy.props.IntProperty(
+        name="256x256 Images",
+        default=0,
+    )
+
+
+class OPENAI_UsageStatisticsAudioTool(bpy.types.PropertyGroup):
+    seconds_whisper: bpy.props.IntProperty(
+        name="Whisper Seconds",
+        default=0,
+    )
+
+
+class OPENAI_UsageStatisticsChatTool(bpy.types.PropertyGroup):
+    tokens_gpt35_turbo: bpy.props.IntProperty(
+        name="GPT-3.5 Turbo Tokens",
+        default=0,
+    )
+    tokens_gpt4_8k: bpy.props.IntProperty(
+        name="GPT-4 8K Tokens",
+        default=0,
+    )
+    tokens_gpt4_32k: bpy.props.IntProperty(
+        name="GPT-4 32K Tokens",
+        default=0,
+    )
+
+
+class OPENAI_UsageStatisticsCodeTool(bpy.types.PropertyGroup):
+    tokens_gpt35_turbo: bpy.props.IntProperty(
+        name="GPT-3.5 Turbo Tokens",
+        default=0,
+    )
+    tokens_gpt4_8k: bpy.props.IntProperty(
+        name="GPT-4 8K Tokens",
+        default=0,
+    )
+    tokens_gpt4_32k: bpy.props.IntProperty(
+        name="GPT-4 32K Tokens",
+        default=0,
+    )
+
+
 def register_properties():
     scene = bpy.types.Scene
 
@@ -306,6 +358,10 @@ def register_properties():
     bpy.utils.register_class(OPENAI_CodeToolGenerateCodeProperties)
     bpy.utils.register_class(OPENAI_CodeToolConditions)
     bpy.utils.register_class(OPENAI_CodeToolEditCodeProperties)
+    bpy.utils.register_class(OPENAI_UsageStatisticsImageTool)
+    bpy.utils.register_class(OPENAI_UsageStatisticsAudioTool)
+    bpy.utils.register_class(OPENAI_UsageStatisticsChatTool)
+    bpy.utils.register_class(OPENAI_UsageStatisticsCodeTool)
 
     scene.openai_icon_collection = bpy.utils.previews.new()
     scene.openai_icon_collection.load("openai_base", f"{ICON_DIR}/openai_base.png", 'IMAGE')
@@ -392,12 +448,35 @@ def register_properties():
         type=bpy.types.Text,
     )
 
+    # Properties for the usage statistics.
+    scene.openai_usage_statistics_image_tool = bpy.props.PointerProperty(
+        name="Usage Statistics for Image Tool",
+        type=OPENAI_UsageStatisticsImageTool,
+    )
+    scene.openai_usage_statistics_audio_tool = bpy.props.PointerProperty(
+        name="Usage Statistics for Audio Tool",
+        type=OPENAI_UsageStatisticsAudioTool,
+    )
+    scene.openai_usage_statistics_chat_tool = bpy.props.PointerProperty(
+        name="Usage Statistics for Chat Tool",
+        type=OPENAI_UsageStatisticsChatTool,
+    )
+    scene.openai_usage_statistics_code_tool = bpy.props.PointerProperty(
+        name="Usage Statistics for Code Tool",
+        type=OPENAI_UsageStatisticsCodeTool,
+    )
+
 
 def unregister_properties():
     scene = bpy.types.Scene
 
     bpy.utils.previews.remove(scene.openai_icon_collection)
     bpy.utils.previews.remove(scene.openai_image_tool_image_collection)
+
+    del scene.openai_usage_statistics_code_tool
+    del scene.openai_usage_statistics_chat_tool
+    del scene.openai_usage_statistics_audio_tool
+    del scene.openai_usage_statistics_image_tool
 
     del scene.openai_code_tool_edit_code_edit_target_text_block
     del scene.openai_code_tool_edit_code_conditions
@@ -425,6 +504,10 @@ def unregister_properties():
 
     del scene.openai_icon_collection
 
+    bpy.utils.unregister_class(OPENAI_UsageStatisticsCodeTool)
+    bpy.utils.unregister_class(OPENAI_UsageStatisticsChatTool)
+    bpy.utils.unregister_class(OPENAI_UsageStatisticsAudioTool)
+    bpy.utils.unregister_class(OPENAI_UsageStatisticsImageTool)
     bpy.utils.unregister_class(OPENAI_CodeToolEditCodeProperties)
     bpy.utils.unregister_class(OPENAI_CodeToolConditions)
     bpy.utils.unregister_class(OPENAI_CodeToolGenerateCodeProperties)

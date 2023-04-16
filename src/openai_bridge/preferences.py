@@ -155,8 +155,9 @@ class OPENAI_Preferences(bpy.types.AddonPreferences):
         max=10,
     )
 
-    def draw(self, _):
+    def draw(self, context):
         layout = self.layout
+        sc = context.scene
 
         row = layout.row()
         row.prop(self, "category", expand=True)
@@ -185,18 +186,60 @@ class OPENAI_Preferences(bpy.types.AddonPreferences):
                 row.prop(self, "show_request_status", text="Show Status")
                 if self.show_request_status:
                     row.prop(self, "request_status_location", expand=True, text="Location")
-            
+
             layout.separator()
 
-            sp = layout.split(factor=0.35)
-            col = sp.column()
-            col.operator(OPENAI_OT_EnableAudioInput.bl_idname)
-            col.prop(self, "audio_record_format")
-            col.prop(self, "audio_record_channels")
-            col.prop(self, "audio_record_rate")
-            col.prop(self, "audio_record_chunk_size")
-            col.prop(self, "audio_record_silence_threshold")
-            col.prop(self, "audio_record_silence_duration_limit")
+            layout.label(text="Usage Statistics:")
+            box = layout.box()
+
+            sp = box.split(factor=0.5)
+            sub_box = sp.box()
+            sub_box.label(text="[Image Tool]")
+            col = sub_box.column()
+            row = col.row()
+            row.label(text="1024x1024")
+            row.label(text=f"{sc.openai_usage_statistics_image_tool.images_1024x1024} images")
+            row = col.row()
+            row.label(text="512x512")
+            row.label(text=f"{sc.openai_usage_statistics_image_tool.images_512x512} images")
+            row = col.row()
+            row.label(text="256x256")
+            row.label(text=f"{sc.openai_usage_statistics_image_tool.images_256x256} images")
+
+            sub_box = sp.box()
+            sub_box.label(text="[Audio Tool]")
+            col = sub_box.column()
+            row = col.row()
+            row.label(text="whiper-1")
+            row.label(text=f"{sc.openai_usage_statistics_audio_tool.seconds_whisper} seconds")
+
+            sp = box.split(factor=0.5)
+            sub_box = sp.box()
+            sub_box.label(text="[Chat Tool]")
+            col = sub_box.column()
+            row = col.row()
+            row.label(text="gpt-3.5-turbo")
+            row.label(text=f"{sc.openai_usage_statistics_chat_tool.tokens_gpt35_turbo} tokens")
+            row = col.row()
+            row.label(text="gpt-4")
+            row.label(text=f"{sc.openai_usage_statistics_chat_tool.tokens_gpt4_8k} tokens")
+            row = col.row()
+            row.label(text="gpt-4-32k")
+            row.label(text=f"{sc.openai_usage_statistics_chat_tool.tokens_gpt4_32k} tokens")
+
+            sp = sp.split(factor=1.0)
+            sub_box = sp.box()
+            sub_box.label(text="[Code Tool]")
+            col = sub_box.column()
+            row = col.row()
+            row.label(text="gpt-3.5-turbo")
+            row.label(text=f"{sc.openai_usage_statistics_code_tool.tokens_gpt35_turbo} tokens")
+            row = col.row()
+            row.label(text="gpt-4")
+            row.label(text=f"{sc.openai_usage_statistics_code_tool.tokens_gpt4_8k} tokens")
+            row = col.row()
+            row.label(text="gpt-4-32k")
+            row.label(text=f"{sc.openai_usage_statistics_code_tool.tokens_gpt4_32k} tokens")
 
         elif self.category == 'IMAGE_TOOL':
             layout.label(text="No configuration")
@@ -224,3 +267,16 @@ class OPENAI_Preferences(bpy.types.AddonPreferences):
             row = col.row()
             row.alignment = 'LEFT'
             row.prop(self, "code_tool_audio_language", text="Language")
+
+            layout.separator()
+
+            layout.label(text="Recording Configuration:")
+            sp = layout.split(factor=0.35)
+            col = sp.column()
+            col.operator(OPENAI_OT_EnableAudioInput.bl_idname)
+            col.prop(self, "audio_record_format")
+            col.prop(self, "audio_record_channels")
+            col.prop(self, "audio_record_rate")
+            col.prop(self, "audio_record_chunk_size")
+            col.prop(self, "audio_record_silence_threshold")
+            col.prop(self, "audio_record_silence_duration_limit")

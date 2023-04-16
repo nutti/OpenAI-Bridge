@@ -8,16 +8,13 @@ import requests
 import threading
 import time
 from urllib.parse import urlparse
-import uuid
+import math
 from collections import OrderedDict
 
 from ..utils.common import (
     get_area_region_space,
-    parse_response_data,
     IMAGE_DATA_DIR,
-    CHAT_DATA_DIR,
     CODE_DATA_DIR,
-    ChatTextFile,
 )
 from ..utils import error_storage
 
@@ -65,6 +62,34 @@ class OPENAI_OT_ProcessMessage(bpy.types.Operator):
         msg_type = message["type"]
         data = message["data"]
         options = message["options"]
+
+        if data and "usage_stats" in data:
+            sc = context.scene
+            for tool, stat in data["usage_stats"].items():
+                if tool == 'IMAGE':
+                    if stat["size"] == "1024x1024":
+                        sc.openai_usage_statistics_image_tool.images_1024x1024 += stat["num_images"]
+                    elif stat["size"] == "512x512":
+                        sc.openai_usage_statistics_image_tool.images_512x512 += stat["num_images"]
+                    elif stat["size"] == "256x256":
+                        sc.openai_usage_statistics_image_tool.images_256x256 += stat["num_images"]
+                elif tool == 'AUDIO':
+                    if stat["model"] == "whisper-1":
+                        sc.openai_usage_statistics_audio_tool.seconds_whisper += stat["num_seconds"]
+                elif tool == 'CHAT':
+                    if stat["model"] == "gpt-3.5-turbo":
+                        sc.openai_usage_statistics_chat_tool.tokens_gpt35_turbo += stat["num_tokens"]
+                    elif stat["model"] == "gpt-4":
+                        sc.openai_usage_statistics_chat_tool.tokens_gpt4_8k += stat["num_tokens"]
+                    elif stat["model"] == "gpt-4-32k":
+                        sc.openai_usage_statistics_chat_tool.tokens_gpt4_32k += stat["num_tokens"]
+                elif tool == 'CODE':
+                    if stat["model"] == "gpt-3.5-turbo":
+                        sc.openai_usage_statistics_code_tool.tokens_gpt35_turbo += stat["num_tokens"]
+                    elif stat["model"] == "gpt-4":
+                        sc.openai_usage_statistics_code_tool.tokens_gpt4_8k += stat["num_tokens"]
+                    elif stat["model"] == "gpt-4-32k":
+                        sc.openai_usage_statistics_code_tool.tokens_gpt4_32k += stat["num_tokens"]
 
         if msg_type == 'IMAGE':
             filepath = data["filepath"]
@@ -325,7 +350,14 @@ class RequestHandler:
             with open(filepath, "wb") as f:
                 f.write(image_data)
 
-            OPENAI_OT_ProcessMessage.process(transaction_id, 'IMAGE', {"filepath": filepath}, options, sync=sync, context=context, operator_instance=operator_instance)
+            usage_stats = {
+                'IMAGE': {
+                    "size": req_data["size"],
+                    "num_images": 1,
+                },
+            }
+
+            OPENAI_OT_ProcessMessage.process(transaction_id, 'IMAGE', {"filepath": filepath, "usage_stats": usage_stats}, options, sync=sync, context=context, operator_instance=operator_instance)
 
         OPENAI_OT_ProcessMessage.process(transaction_id, 'END_OF_TRANSACTION', None, None, sync=sync, context=context, operator_instance=operator_instance)
 
@@ -364,7 +396,14 @@ class RequestHandler:
             os.remove(options["base_image_filepath"])
             os.remove(options["mask_image_filepath"])
 
-            OPENAI_OT_ProcessMessage.process(transaction_id, 'IMAGE', {"filepath": filepath}, options, sync=sync, context=context, operator_instance=operator_instance)
+            usage_stats = {
+                'IMAGE': {
+                    "size": req_data["size"],
+                    "num_images": 1,
+                },
+            }
+
+            OPENAI_OT_ProcessMessage.process(transaction_id, 'IMAGE', {"filepath": filepath, "usage_stats": usage_stats}, options, sync=sync, context=context, operator_instance=operator_instance)
 
         OPENAI_OT_ProcessMessage.process(transaction_id, 'END_OF_TRANSACTION', None, None, sync=sync, context=context, operator_instance=operator_instance)
 
@@ -402,7 +441,14 @@ class RequestHandler:
             # Remove temporary files.
             os.remove(options["base_image_filepath"])
 
-            OPENAI_OT_ProcessMessage.process(transaction_id, 'IMAGE', {"filepath": filepath}, options, sync=sync, context=context, operator_instance=operator_instance)
+            usage_stats = {
+                'IMAGE': {
+                    "size": req_data["size"],
+                    "num_images": 1,
+                },
+            }
+
+            OPENAI_OT_ProcessMessage.process(transaction_id, 'IMAGE', {"filepath": filepath, "usage_stats": usage_stats}, options, sync=sync, context=context, operator_instance=operator_instance)
 
         OPENAI_OT_ProcessMessage.process(transaction_id, 'END_OF_TRANSACTION', None, None, sync=sync, context=context, operator_instance=operator_instance)
 
@@ -417,8 +463,16 @@ class RequestHandler:
         response.raise_for_status()
         response_data = response.json()
 
+        usage_stats = {}
+        if "strip_start" in options and "strip_end" in options:
+            # TODO: Improve the statistics by checking the length of audio file.
+            usage_stats['AUDIO'] = {
+                "model": req_data["model"][1],
+                "num_seconds": math.ceil((options["strip_end"] - options["strip_start"]) / options["fps"]),
+            }
+
         # Post message.
-        OPENAI_OT_ProcessMessage.process(transaction_id, 'AUDIO', {"text": response_data["text"]}, options, sync=sync, context=context, operator_instance=operator_instance)
+        OPENAI_OT_ProcessMessage.process(transaction_id, 'AUDIO', {"text": response_data["text"], "usage_stats": usage_stats}, options, sync=sync, context=context, operator_instance=operator_instance)
         OPENAI_OT_ProcessMessage.process(transaction_id, 'END_OF_TRANSACTION', None, None, sync=sync, context=context, operator_instance=operator_instance)
 
     @classmethod
@@ -482,8 +536,15 @@ class RequestHandler:
         chat_file.modify_part(chat_file.num_parts() - 1, response_data=response_text)
         chat_file.save()
 
+        usage_stats = {
+            'CHAT': {
+                "model": req_data["model"],
+                "num_tokens": response_data["usage"]["total_tokens"],
+            },
+        }
+
         # Post to message queue.
-        OPENAI_OT_ProcessMessage.process(transaction_id, 'CHAT', {}, options, sync=sync, context=context, operator_instance=operator_instance)
+        OPENAI_OT_ProcessMessage.process(transaction_id, 'CHAT', {"usage_stats": usage_stats}, options, sync=sync, context=context, operator_instance=operator_instance)
         OPENAI_OT_ProcessMessage.process(transaction_id, 'END_OF_TRANSACTION', None, None, sync=sync, context=context, operator_instance=operator_instance)
 
     @classmethod
@@ -514,8 +575,15 @@ class RequestHandler:
         with open(filepath, "w", encoding="utf-8") as f:
             f.write(code_body)
 
+        usage_stats = {
+            'CODE': {
+                "model": req_data["model"],
+                "num_tokens": response_data["usage"]["total_tokens"],
+            },
+        }
+
         # Post to message queue.
-        OPENAI_OT_ProcessMessage.process(transaction_id, 'CODE', {}, options, sync=sync, context=context, operator_instance=operator_instance)
+        OPENAI_OT_ProcessMessage.process(transaction_id, 'CODE', {"usage_stats": usage_stats}, options, sync=sync, context=context, operator_instance=operator_instance)
         OPENAI_OT_ProcessMessage.process(transaction_id, 'END_OF_TRANSACTION', None, None, sync=sync, context=context, operator_instance=operator_instance)
 
     @classmethod
@@ -572,8 +640,16 @@ class RequestHandler:
         with open(filepath, "w", encoding="utf-8") as f:
             f.write(code_body)
 
+        usage_stats = {
+            # TODO: Add 'AUDIO' stat.
+            'CODE': {
+                "model": req_data["model"],
+                "num_tokens": response_data["usage"]["total_tokens"],
+            },
+        }
+
         # Post to message queue.
-        OPENAI_OT_ProcessMessage.process(transaction_id, 'CODE', {}, options, sync=sync, context=context, operator_instance=operator_instance)
+        OPENAI_OT_ProcessMessage.process(transaction_id, 'CODE', {"usage_stats": usage_stats}, options, sync=sync, context=context, operator_instance=operator_instance)
         OPENAI_OT_ProcessMessage.process(transaction_id, 'END_OF_TRANSACTION', None, None, sync=sync, context=context, operator_instance=operator_instance)
 
     @classmethod

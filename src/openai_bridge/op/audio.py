@@ -94,6 +94,7 @@ class OPENAI_OT_TranscribeSoundStrip(bpy.types.Operator):
         return wm.invoke_props_dialog(self, width=prefs.popup_menu_width)
 
     def execute(self, context):
+        sc = context.scene
         user_prefs = context.preferences
         prefs = user_prefs.addons["openai_bridge"].preferences
         api_key = prefs.api_key
@@ -114,7 +115,8 @@ class OPENAI_OT_TranscribeSoundStrip(bpy.types.Operator):
             "target": self.target,
             "target_sequence_channel": self.target_sequence_channel,
             "strip_start": sequence.frame_final_start,
-            "strip_end": sequence.frame_final_start + sequence.frame_final_duration
+            "strip_end": sequence.frame_final_start + sequence.frame_final_duration,
+            "fps": sc.render.fps / sc.render.fps_base,
         }
 
         if not prefs.async_execution:
