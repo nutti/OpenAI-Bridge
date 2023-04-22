@@ -109,6 +109,8 @@ class OPENAI_OT_EditImage(bpy.types.Operator):
             "mask_image_name": self.mask_image_name,
             "base_image_filepath": base_image_filepath,
             "mask_image_filepath": mask_image_filepath,
+            "http_proxy": prefs.http_proxy,
+            "https_proxy": prefs.https_proxy,
         }
 
         if not prefs.async_execution:
@@ -246,6 +248,8 @@ class OPENAI_OT_GeneateImage(bpy.types.Operator):
         }
         options = {
             "image_name": self.image_name,
+            "http_proxy": prefs.http_proxy,
+            "https_proxy": prefs.https_proxy,
         }
 
         if not prefs.async_execution:
@@ -342,6 +346,8 @@ class OPENAI_OT_GenerateVariationImage(bpy.types.Operator):
         options = {
             "base_image_name": self.base_image_name,
             "base_image_filepath": base_image_filepath,
+            "http_proxy": prefs.http_proxy,
+            "https_proxy": prefs.https_proxy,
         }
 
         if not prefs.async_execution:

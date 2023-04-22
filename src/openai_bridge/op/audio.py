@@ -117,6 +117,8 @@ class OPENAI_OT_TranscribeSoundStrip(bpy.types.Operator):
             "strip_start": sequence.frame_final_start,
             "strip_end": sequence.frame_final_start + sequence.frame_final_duration,
             "fps": sc.render.fps / sc.render.fps_base,
+            "http_proxy": prefs.http_proxy,
+            "https_proxy": prefs.https_proxy,
         }
 
         if not prefs.async_execution:
@@ -201,6 +203,8 @@ class OPENAI_OT_TranscribeAudioFile(bpy.types.Operator):
         options = {
             "target": 'TEXT_EDITOR',
             "target_text_name": self.target_text_name,
+            "http_proxy": prefs.http_proxy,
+            "https_proxy": prefs.https_proxy,
         }
 
         if not prefs.async_execution:

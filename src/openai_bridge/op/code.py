@@ -69,6 +69,8 @@ class OPENAI_OT_GenerateCodeExample(bpy.types.Operator):
         options = {
             "execute_immediately": False,
             "show_text_editor": True,
+            "http_proxy": prefs.http_proxy,
+            "https_proxy": prefs.https_proxy,
         }
 
         if kind == 'OPERATOR':
@@ -97,7 +99,7 @@ class OPENAI_OT_GenerateCodeExample(bpy.types.Operator):
         else:
             transaction_data = {
                 "type": 'CODE',
-                "title": options["code"],
+                "title": options["code"][0:32],
             }
             async_request(api_key, 'GENERATE_CODE', request, options, transaction_data)
             # Run Message Processing Timer if it has not launched yet.
@@ -393,6 +395,9 @@ class OPENAI_OT_GenerateCodeFromAudio(bpy.types.Operator):
             "audio_model": prefs.audio_tool_model,
             "audio_language": prefs.code_tool_audio_language,
             "execute_immediately": True,
+            "show_text_editor": False,
+            "http_proxy": prefs.http_proxy,
+            "https_proxy": prefs.https_proxy,
         }
 
         if not prefs.async_execution:
@@ -589,6 +594,8 @@ class OPENAI_OT_GenerateCode(bpy.types.Operator):
         options = {
             "execute_immediately": self.execute_immediately,
             "show_text_editor": self.show_text_editor,
+            "http_proxy": prefs.http_proxy,
+            "https_proxy": prefs.https_proxy,
         }
         if self.execute_immediately:
             options["code"] = self.prompt[0:64]
@@ -710,6 +717,8 @@ Edit the [Code] from the below [Instruction].
             "code": f"edit-{self.edit_target_text_block_name}",
             "show_text_editor": True,
             "execute_immediately": False,
+            "http_proxy": prefs.http_proxy,
+            "https_proxy": prefs.https_proxy,
         }
 
         if not prefs.async_execution:
@@ -717,7 +726,7 @@ Edit the [Code] from the below [Instruction].
         else:
             transaction_data = {
                 "type": 'EDIT_CODE',
-                "title": options["code"],
+                "title": options["code"][0:32],
             }
             async_request(api_key, 'EDIT_CODE', request, options, transaction_data)
             # Run Message Processing Timer if it has not launched yet.

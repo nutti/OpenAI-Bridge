@@ -50,6 +50,8 @@ class OPENAI_OT_Ask(bpy.types.Operator):
         }
         options = {
             "new_topic": True,
+            "http_proxy": prefs.http_proxy,
+            "https_proxy": prefs.https_proxy,
         }
 
         if kind == 'OPERATOR':
@@ -489,6 +491,8 @@ class OPENAI_OT_Chat(bpy.types.Operator):
 
         options = {
             "new_topic": self.new_topic,
+            "http_proxy": prefs.http_proxy,
+            "https_proxy": prefs.https_proxy,
             "hidden_conditions": [
                 "The question is for the Blender",
             ]

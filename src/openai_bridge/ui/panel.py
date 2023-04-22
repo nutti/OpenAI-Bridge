@@ -131,7 +131,7 @@ class OPENAI_PT_ImageToolGenereateVariationImage(bpy.types.Panel):
     def draw_header(self, context):
         layout = self.layout
 
-        layout.label(text="", icon='GREASEPENCIL')
+        layout.label(text="", icon='DUPLICATE')
 
     def draw(self, context):
         layout = self.layout
@@ -708,6 +708,7 @@ class OPENAI_PT_CodeToolGenerateCode(bpy.types.Panel):
         op.execute_immediately = False
         op.show_text_editor = True
         op.num_conditions = len(sc.openai_code_tool_generate_code_conditions)
+        op.new_code_name = props.prompt[0:64]
         for i, condition in enumerate(sc.openai_code_tool_generate_code_conditions):
             item = op.conditions.add()
             item.condition = condition.condition

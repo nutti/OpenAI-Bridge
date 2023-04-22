@@ -10,11 +10,15 @@ import time
 from urllib.parse import urlparse
 import math
 from collections import OrderedDict
+import uuid
 
 from ..utils.common import (
     get_area_region_space,
+    parse_response_data,
     IMAGE_DATA_DIR,
+    CHAT_DATA_DIR,
     CODE_DATA_DIR,
+    ChatTextFile,
 )
 from ..utils import error_storage
 
@@ -316,21 +320,26 @@ class RequestHandler:
         print("RequestHandler is stopped.")
 
     @classmethod
-    def handle_genereate_image_request(cls, api_key, transaction_id, req_data, options, sync, context=None, operator_instance=None):
+    def handle_generate_image_request(cls, api_key, transaction_id, req_data, options, sync, context=None, operator_instance=None):
         # Send prompt.
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {api_key}"
         }
+        proxies = {
+            "http": options["http_proxy"],
+            "https": options["https_proxy"],
+        }
         response = requests.post("https://api.openai.com/v1/images/generations",
-                                 headers=headers, data=json.dumps(req_data))
+                                 headers=headers, data=json.dumps(req_data),
+                                 proxies=proxies)
         response.raise_for_status()
         response_data = response.json()
 
         # Download image.
         for i, data in enumerate(response_data["data"]):
             download_url = data["url"]
-            response = requests.get(download_url)
+            response = requests.get(download_url, proxies=proxies)
             response.raise_for_status()
             content_type = response.headers["content-type"]
             if "image" not in content_type:
@@ -367,15 +376,20 @@ class RequestHandler:
         headers = {
             "Authorization": f"Bearer {api_key}"
         }
+        proxies = {
+            "http": options["http_proxy"],
+            "https": options["https_proxy"],
+        }
         response = requests.post("https://api.openai.com/v1/images/edits",
-                                 headers=headers, files=req_data)
+                                 headers=headers, files=req_data,
+                                 proxies=proxies)
         response.raise_for_status()
         response_data = response.json()
 
         # Download image.
         for i, data in enumerate(response_data["data"]):
             download_url = data["url"]
-            response = requests.get(download_url)
+            response = requests.get(download_url, proxies=proxies)
             response.raise_for_status()
             content_type = response.headers["content-type"]
             if "image" not in content_type:
@@ -413,15 +427,20 @@ class RequestHandler:
         headers = {
             "Authorization": f"Bearer {api_key}"
         }
+        proxies = {
+            "http": options["http_proxy"],
+            "https": options["https_proxy"],
+        }
         response = requests.post("https://api.openai.com/v1/images/variations",
-                                 headers=headers, files=req_data)
+                                 headers=headers, files=req_data,
+                                 proxies=proxies)
         response.raise_for_status()
         response_data = response.json()
 
         # Download image.
         for i, data in enumerate(response_data["data"]):
             download_url = data["url"]
-            response = requests.get(download_url)
+            response = requests.get(download_url, proxies=proxies)
             response.raise_for_status()
             content_type = response.headers["content-type"]
             if "image" not in content_type:
@@ -458,8 +477,13 @@ class RequestHandler:
         headers = {
             "Authorization": f"Bearer {api_key}"
         }
+        proxies = {
+            "http": options["http_proxy"],
+            "https": options["https_proxy"],
+        }
         response = requests.post("https://api.openai.com/v1/audio/transcriptions",
-                                 headers=headers, files=req_data)
+                                 headers=headers, files=req_data,
+                                 proxies=proxies)
         response.raise_for_status()
         response_data = response.json()
 
@@ -526,8 +550,13 @@ class RequestHandler:
             "Content-Type": "application/json",
             "Authorization": f"Bearer {api_key}"
         }
+        proxies = {
+            "http": options["http_proxy"],
+            "https": options["https_proxy"],
+        }
         response = requests.post("https://api.openai.com/v1/chat/completions",
-                                 headers=headers, data=json.dumps(req_data))
+                                 headers=headers, data=json.dumps(req_data),
+                                 proxies=proxies)
         response.raise_for_status()
         response_data = response.json()
         response_text = response_data["choices"][0]["message"]["content"]
@@ -554,8 +583,13 @@ class RequestHandler:
             "Content-Type": "application/json",
             "Authorization": f"Bearer {api_key}"
         }
+        proxies = {
+            "http": options["http_proxy"],
+            "https": options["https_proxy"],
+        }
         response = requests.post("https://api.openai.com/v1/chat/completions",
-                                 headers=headers, data=json.dumps(req_data))
+                                 headers=headers, data=json.dumps(req_data),
+                                 proxies=proxies)
         response.raise_for_status()
         response_data = response.json()
         response_text = response_data["choices"][0]["message"]["content"]
@@ -567,7 +601,7 @@ class RequestHandler:
             if section["kind"] == 'CODE':
                 code_sections.append(section)
         if len(code_sections) != 1:
-            raise ValueError(f"Number of code section must be 1 but {len(sections)}")
+            raise ValueError(f"Number of code section must be 1 but {len(code_sections)}")
         code_body = code_sections[0]["body"]
 
         os.makedirs(CODE_DATA_DIR, exist_ok=True)
@@ -604,8 +638,13 @@ class RequestHandler:
         audio_headers = {
             "Authorization": f"Bearer {api_key}"
         }
+        proxies = {
+            "http": options["http_proxy"],
+            "https": options["https_proxy"],
+        }
         response = requests.post("https://api.openai.com/v1/audio/transcriptions",
-                                 headers=audio_headers, files=audio_request)
+                                 headers=audio_headers, files=audio_request,
+                                 proxies=proxies)
         response.raise_for_status()
         response_data = response.json()
         req_data["messages"].append({
@@ -620,7 +659,8 @@ class RequestHandler:
             "Authorization": f"Bearer {api_key}"
         }
         response = requests.post("https://api.openai.com/v1/chat/completions",
-                                 headers=headers, data=json.dumps(req_data))
+                                 headers=headers, data=json.dumps(req_data),
+                                 proxies=proxies)
         response.raise_for_status()
         response_data = response.json()
         response_text = response_data["choices"][0]["message"]["content"]
@@ -661,7 +701,7 @@ class RequestHandler:
         options = request[4]
 
         if req_type == 'GENERATE_IMAGE':
-            cls.handle_genereate_image_request(api_key, transaction_id, req_data, options, sync=sync, context=context, operator_instance=operator_instance)
+            cls.handle_generate_image_request(api_key, transaction_id, req_data, options, sync=sync, context=context, operator_instance=operator_instance)
         elif req_type == 'EDIT_IMAGE':
             cls.handle_edit_image_request(api_key, transaction_id, req_data, options, sync=sync, context=context, operator_instance=operator_instance)
         elif req_type == 'GENERATE_VARIATION_IMAGE':

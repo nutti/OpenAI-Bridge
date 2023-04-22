@@ -124,7 +124,9 @@ class OPENAI_AudioToolTranscribeSoundStripProperties(bpy.types.PropertyGroup):
     language: bpy.props.EnumProperty(
         name="Language",
         items=[
-            ('en', "English", "English"),       # TODO: Add more languages
+            ('en', "English", "English"),
+            ('ja', "Japanese", "Japanese"),
+            # TODO: Add more languages
         ],
         default='en',
     )

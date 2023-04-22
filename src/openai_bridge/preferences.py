@@ -36,6 +36,12 @@ class OPENAI_Preferences(bpy.types.AddonPreferences):
         name="API Key",
         subtype='PASSWORD',
     )
+    http_proxy: bpy.props.StringProperty(
+        name="HTTP Proxy",
+    )
+    https_proxy: bpy.props.StringProperty(
+        name="HTTPS Proxy",
+    )
     popup_menu_width: bpy.props.IntProperty(
         name="Popup Menu Width",
         default=300,
@@ -164,6 +170,8 @@ class OPENAI_Preferences(bpy.types.AddonPreferences):
 
         if self.category == 'SYSTEM':
             layout.prop(self, "api_key")
+            layout.prop(self, "http_proxy")
+            layout.prop(self, "https_proxy")
 
             row = layout.row()
             op = row.operator(bpy.types.WM_OT_url_open.bl_idname, text="Register OpenAI API", icon='URL')
