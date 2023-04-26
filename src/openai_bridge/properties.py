@@ -1,7 +1,7 @@
-import bpy
-import bpy.utils.previews
 import glob
 import os
+import bpy
+import bpy.utils.previews
 
 from .utils.common import (
     IMAGE_DATA_DIR,
@@ -42,7 +42,7 @@ class OPENAI_ImageToolGenerateImageProperties(bpy.types.PropertyGroup):
 
     def get_image_previews_items(self, context):
         sc = context.scene
-        collection =sc.openai_image_tool_image_collection
+        collection = sc.openai_image_tool_image_collection
 
         image_dir = f"{IMAGE_DATA_DIR}/generated"
         if not os.path.isdir(image_dir):
@@ -89,7 +89,8 @@ class OPENAI_ImageToolEditImageProperties(bpy.types.PropertyGroup):
     )
 
 
-class OPENAI_ImageToolGenerateVariationImageProperties(bpy.types.PropertyGroup):
+class OPENAI_ImageToolGenerateVariationImageProperties(
+        bpy.types.PropertyGroup):
     prompt: bpy.props.StringProperty(
         name="Property"
     )
@@ -155,12 +156,14 @@ class OPENAI_AudioToolTranscribeSoundStripProperties(bpy.types.PropertyGroup):
 
     auto_sequence_channel: bpy.props.BoolProperty(
         name="Auto Sequence Channel",
-        description="Create transcription result on the automatically determined channel on sequence editor",
+        description="""Create transcription result on the automatically
+determined channel on sequence editor""",
         default=True,
     )
     sequence_channel: bpy.props.IntProperty(
         name="Sequence Channel",
-        description="Sequence channel where the transcription result to be created",
+        description="""Sequence channel where the transcription result to be
+created""",
         min=1,
         max=128,
         default=1,
@@ -196,7 +199,7 @@ class OPENAI_AudioToolTranscribeAudioFileProperties(bpy.types.PropertyGroup):
         name="Source Audio Filepath",
     )
 
-    def get_sound_data_block(self, context):
+    def get_sound_data_block(self, _):
         items = []
         for sound in bpy.data.sounds:
             items.append((sound.filepath, sound.name, sound.name))
@@ -233,7 +236,7 @@ class OPENAI_ChatToolProperties(bpy.types.PropertyGroup):
         max=10,
     )
 
-    def get_topics(self, context):
+    def get_topics(self, _):
         topic_dir = f"{CHAT_DATA_DIR}/topics"
         if not os.path.isdir(topic_dir):
             return []
@@ -366,7 +369,8 @@ def register_properties():
     bpy.utils.register_class(OPENAI_UsageStatisticsCodeTool)
 
     scene.openai_icon_collection = bpy.utils.previews.new()
-    scene.openai_icon_collection.load("openai_base", f"{ICON_DIR}/openai_base.png", 'IMAGE')
+    scene.openai_icon_collection.load(
+        "openai_base", f"{ICON_DIR}/openai_base.png", 'IMAGE')
 
     # Properties for Image Tool.
     scene.openai_image_tool_generate_image_props = bpy.props.PointerProperty(
@@ -388,31 +392,36 @@ def register_properties():
         type=bpy.types.Image,
         poll=lambda _, img: img.depth // (img.is_float * 3 + 1) == 32,
     )
-    scene.openai_image_tool_generate_variation_image_props = bpy.props.PointerProperty(
-        type=OPENAI_ImageToolGenerateVariationImageProperties
-    )
-    scene.openai_image_tool_generate_variation_image_base_image = bpy.props.PointerProperty(
-        name="Base Image",
-        description="Image block to be used for the base image",
-        type=bpy.types.Image,
-        poll=lambda _, img: img.depth // (img.is_float * 3 + 1) == 32,
-    )
+    scene.openai_image_tool_generate_variation_image_props = \
+        bpy.props.PointerProperty(
+            type=OPENAI_ImageToolGenerateVariationImageProperties
+        )
+    scene.openai_image_tool_generate_variation_image_base_image = \
+        bpy.props.PointerProperty(
+            name="Base Image",
+            description="Image block to be used for the base image",
+            type=bpy.types.Image,
+            poll=lambda _, img: img.depth // (img.is_float * 3 + 1) == 32,
+        )
 
     # Properties for Audio Tool.
-    scene.openai_audio_tool_transcribe_sound_strip_props = bpy.props.PointerProperty(
-        type=OPENAI_AudioToolTranscribeSoundStripProperties,
-    )
-    scene.openai_audio_tool_transcribe_audio_file_props = bpy.props.PointerProperty(
-        type=OPENAI_AudioToolTranscribeAudioFileProperties,
-    )
+    scene.openai_audio_tool_transcribe_sound_strip_props = \
+        bpy.props.PointerProperty(
+            type=OPENAI_AudioToolTranscribeSoundStripProperties,
+        )
+    scene.openai_audio_tool_transcribe_audio_file_props = \
+        bpy.props.PointerProperty(
+            type=OPENAI_AudioToolTranscribeAudioFileProperties,
+        )
     scene.openai_audio_tool_target_text = bpy.props.PointerProperty(
         name="Target Text",
         type=bpy.types.Text,
     )
-    scene.openai_audio_tool_source_sound_data_block = bpy.props.PointerProperty(
-        name="Source Sound Data Block",
-        type=bpy.types.Sound,
-    )
+    scene.openai_audio_tool_source_sound_data_block = \
+        bpy.props.PointerProperty(
+            name="Source Sound Data Block",
+            type=bpy.types.Sound,
+        )
 
     # Properties for Chat Tool.
     scene.openai_chat_tool_props = bpy.props.PointerProperty(
@@ -434,10 +443,11 @@ def register_properties():
     scene.openai_code_tool_generate_code_props = bpy.props.PointerProperty(
         type=OPENAI_CodeToolGenerateCodeProperties,
     )
-    scene.openai_code_tool_generate_code_conditions = bpy.props.CollectionProperty(
-        name="Conditions",
-        type=OPENAI_CodeToolConditions,
-    )
+    scene.openai_code_tool_generate_code_conditions = \
+        bpy.props.CollectionProperty(
+            name="Conditions",
+            type=OPENAI_CodeToolConditions,
+        )
     scene.openai_code_tool_edit_code_props = bpy.props.PointerProperty(
         type=OPENAI_CodeToolEditCodeProperties,
     )
@@ -445,10 +455,11 @@ def register_properties():
         name="Conditions",
         type=OPENAI_CodeToolConditions,
     )
-    scene.openai_code_tool_edit_code_edit_target_text_block = bpy.props.PointerProperty(
-        name="Edit Target Text Block",
-        type=bpy.types.Text,
-    )
+    scene.openai_code_tool_edit_code_edit_target_text_block = \
+        bpy.props.PointerProperty(
+            name="Edit Target Text Block",
+            type=bpy.types.Text,
+        )
 
     # Properties for the usage statistics.
     scene.openai_usage_statistics_image_tool = bpy.props.PointerProperty(
@@ -517,6 +528,7 @@ def unregister_properties():
     bpy.utils.unregister_class(OPENAI_ChatToolProperties)
     bpy.utils.unregister_class(OPENAI_AudioToolTranscribeAudioFileProperties)
     bpy.utils.unregister_class(OPENAI_AudioToolTranscribeSoundStripProperties)
-    bpy.utils.unregister_class(OPENAI_ImageToolGenerateVariationImageProperties)
+    bpy.utils.unregister_class(
+        OPENAI_ImageToolGenerateVariationImageProperties)
     bpy.utils.unregister_class(OPENAI_ImageToolEditImageProperties)
     bpy.utils.unregister_class(OPENAI_ImageToolGenerateImageProperties)

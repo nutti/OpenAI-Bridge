@@ -56,7 +56,8 @@ class ChatTextFile:
 
     def save(self):
         with open(self.filepath, "w", encoding="utf-8") as f:
-            json.dump(self.json_raw, f, ensure_ascii=False, indent=4, sort_keys=True, separators=(",", ": "))
+            json.dump(self.json_raw, f, ensure_ascii=False, indent=4,
+                      sort_keys=True, separators=(",", ": "))
 
     def load_from_topic(self, topic):
         filepath = f"{CHAT_DATA_DIR}/topics/{topic}.json"
@@ -81,7 +82,8 @@ class ChatTextFile:
             "assistant": response_data,
         })
 
-    def modify_part(self, part, *, user_data=None, condition_data=None, response_data=None):
+    def modify_part(self, part, *, user_data=None, condition_data=None,
+                    response_data=None):
         if user_data is not None:
             self.json_raw["topic"]["parts"][part]["user"] = user_data
         if condition_data is not None:
@@ -111,8 +113,8 @@ def parse_response_data(response_data):
     lines = response_data.split("\n")
     in_code = False
     section = []
-    for l in lines:
-        if l.startswith("```"):
+    for line in lines:
+        if line.startswith("```"):
             if in_code:
                 sections.append({
                     "kind": 'CODE',
@@ -128,7 +130,7 @@ def parse_response_data(response_data):
                 section = []
                 in_code = True
         else:
-            section.append(l)
+            section.append(line)
     if section:
         sections.append({
             "kind": 'TEXT',
@@ -158,8 +160,8 @@ def draw_data_on_ui_layout(context, layout, lines):
     wrapped_length = int(context.region.width * prefs.chat_log_wrap_width)
     wrapper = textwrap.TextWrapper(width=wrapped_length)
     col = layout.column(align=True)
-    for l in lines:
-        wrappeed_lines = wrapper.wrap(text=l)
+    for line in lines:
+        wrappeed_lines = wrapper.wrap(text=line)
         for wl in wrappeed_lines:
             col.scale_y = 0.8
             col.label(text=wl)

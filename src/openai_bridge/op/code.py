@@ -1,7 +1,7 @@
-import bpy
 import glob
 import os
 import uuid
+import bpy
 import gpu
 from gpu_extras.batch import batch_for_shader
 import blf
@@ -31,7 +31,8 @@ class OPENAI_OT_GenerateCodeExample(bpy.types.Operator):
     def poll(cls, context):
         if hasattr(context, "button_operator"):
             return True
-        if hasattr(context, "button_prop") and hasattr(context, "button_pointer"):
+        if hasattr(context, "button_prop") and \
+                hasattr(context, "button_pointer"):
             return True
 
         return False
@@ -43,10 +44,13 @@ class OPENAI_OT_GenerateCodeExample(bpy.types.Operator):
 
         if hasattr(context, "button_operator"):
             kind = 'OPERATOR'
-        elif hasattr(context, "button_prop") and hasattr(context, "button_pointer"):
+        elif hasattr(context, "button_prop") and \
+                hasattr(context, "button_pointer"):
             kind = 'PROPERTY'
         else:
-            self.report({'WARNING'}, "The execution condition does not meet the requirement.")
+            self.report(
+                {'WARNING'},
+                "The execution condition does not meet the requirement.")
             return {'FINISHED'}
 
         request = {
@@ -90,18 +94,21 @@ class OPENAI_OT_GenerateCodeExample(bpy.types.Operator):
             py_prop_name = prop.identifier
             request["messages"].append({
                 "role": "user",
-                "content": f"Create example code which use the property '{py_prop_name}' of '{py_class}'."
+                "content": f"Create example code which use the property "
+                           f"'{py_prop_name}' of '{py_class}'."
             })
             options["code"] = f"[Example] {py_class}.{py_prop_name}"
 
         if not prefs.async_execution:
-            sync_request(api_key, 'GENERATE_CODE', request, options, context, self)
+            sync_request(
+                api_key, 'GENERATE_CODE', request, options, context, self)
         else:
             transaction_data = {
                 "type": 'CODE',
                 "title": options["code"][0:32],
             }
-            async_request(api_key, 'GENERATE_CODE', request, options, transaction_data)
+            async_request(
+                api_key, 'GENERATE_CODE', request, options, transaction_data)
             # Run Message Processing Timer if it has not launched yet.
             bpy.ops.system.openai_process_message()
 
@@ -122,7 +129,7 @@ class OPENAI_OT_AddCodeCondition(bpy.types.Operator):
         items=[
             ('CODE_TOOL', "Code Tool", "Code Tool"),
             ('GENERATE_CODE', "Generate Code", "Generate Code"),
-            ('FIX_CODE',  "Fix Code", "Fix Code"),
+            ('FIX_CODE', "Fix Code", "Fix Code"),
         ],
         default='CODE_TOOL',
     )
@@ -160,7 +167,7 @@ class OPENAI_OT_RemoveCodeCondition(bpy.types.Operator):
         items=[
             ('CODE_TOOL', "Code Tool", "Code Tool"),
             ('GENERATE_CODE', "Generate Code", "Generate Code"),
-            ('FIX_CODE',  "Fix Code", "Fix Code"),
+            ('FIX_CODE', "Fix Code", "Fix Code"),
         ],
         default='CODE_TOOL',
     )
@@ -171,9 +178,11 @@ class OPENAI_OT_RemoveCodeCondition(bpy.types.Operator):
         if self.target == 'CODE_TOOL':
             sc.openai_code_tool_conditions.remove(self.index_to_remove)
         elif self.target == 'GENERATE_CODE':
-            sc.openai_code_tool_generate_code_conditions.remove(self.index_to_remove)
+            sc.openai_code_tool_generate_code_conditions.remove(
+                self.index_to_remove)
         elif self.target == 'FIX_CODE':
-            sc.openai_code_tool_edit_code_conditions.remove(self.index_to_remove)
+            sc.openai_code_tool_edit_code_conditions.remove(
+                self.index_to_remove)
         else:
             return {'CANCELLED'}
 
@@ -191,16 +200,15 @@ class OPENAI_OT_RunCode(bpy.types.Operator):
         name="Code",
     )
 
-    def execute(self, context):
-        print(self.code)
+    def execute(self, _):
         error_key = error_storage.get_error_key('CODE', self.code, 0, 0)
 
         try:
             filepath = f"{CODE_DATA_DIR}/{self.code}.py"
             with open(filepath, "r", encoding="utf-8") as f:
                 code_to_execute = f.read()
-            exec(code_to_execute)
-        except Exception as e:
+            exec(code_to_execute)   # pylint: disable=W0122
+        except Exception as e:  # pylint: disable=W0703
             error_message = f"Error: {e}"
             error_storage.store_error(error_key, error_message)
             return {'CANCELLED'}
@@ -242,7 +250,8 @@ class OPENAI_OT_CopyCode(bpy.types.Operator):
             text_data.clear()
             text_data.write(code_to_copy)
             # Focus on the chat in Text Editor.
-            _, _, space = get_area_region_space(context, 'TEXT_EDITOR', 'WINDOW', 'TEXT_EDITOR')
+            _, _, space = get_area_region_space(
+                context, 'TEXT_EDITOR', 'WINDOW', 'TEXT_EDITOR')
             if space is not None:
                 space.text = text_data
 
@@ -260,7 +269,7 @@ class OPENAI_OT_RemoveCode(bpy.types.Operator):
         name="Code",
     )
 
-    def execute(self, context):
+    def execute(self, _):
         filepath = f"{CODE_DATA_DIR}/{self.code}.py"
 
         os.remove(filepath)
@@ -284,7 +293,9 @@ class OPENAI_OT_CopyCodeError(bpy.types.Operator):
 
         error_message = error_storage.get_error(error_key)
         if error_message is None:
-            self.report({'WARNING'}, f"Failed to get error message (Error Key: {error_key})")
+            self.report(
+                {'WARNING'},
+                f"Failed to get error message (Error Key: {error_key})")
             return {'CANCELLED'}
 
         context.window_manager.clipboard = error_message
@@ -316,9 +327,9 @@ class OPENAI_OT_GenerateCodeFromAudio(bpy.types.Operator):
         type=OPENAI_CodeConditionPropertyCollection,
     )
 
-    _timer = None
-    _draw_cb = {"space_data": None, "handler": None}
-    _recorder = None
+    timer = None
+    draw_cb = {"space_data": None, "handler": None}
+    recorder = None
 
     @classmethod
     def draw_status(cls, context):
@@ -345,25 +356,28 @@ class OPENAI_OT_GenerateCodeFromAudio(bpy.types.Operator):
             [2, 3, 0]
         ]
         shader = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
-        batch = batch_for_shader(shader, 'TRIS', vertex_data, indices=index_data)
+        batch = batch_for_shader(
+            shader, 'TRIS', vertex_data, indices=index_data)
         shader.bind()
         shader.uniform_float("color", [0.0, 0.0, 0.0, 0.6])
         batch.draw(shader)
         gpu.state.blend_set(original_state)
 
         str_to_draw = ""
-        if cls._recorder:
-            if cls._recorder.get_recording_status() == 'WAIT_RECORDING':
+        if cls.recorder:
+            if cls.recorder.get_recording_status() == 'WAIT_RECORDING':
                 str_to_draw = "Wait Recording ..."
-            elif cls._recorder.get_recording_status() == 'RECORDING':
+            elif cls.recorder.get_recording_status() == 'RECORDING':
                 str_to_draw = "Recording ..."
-            elif cls._recorder.get_recording_status() in ('FINISHED', 'ABORTED', 'TERMINATED'):
+            elif cls.recorder.get_recording_status() in (
+                    'FINISHED', 'ABORTED', 'TERMINATED'):
                 str_to_draw = "Finished"
 
         blf.color(font_id, 0.8, 0.8, 0.8, 1.0)
         blf.size(font_id, 32)
         size = blf.dimensions(font_id, str_to_draw)
-        blf.position(font_id, center_x - size[0] / 2, center_y - size[1] / 2 + 5.0, 0.0)
+        blf.position(font_id, center_x - size[0] / 2,
+                     center_y - size[1] / 2 + 5.0, 0.0)
         blf.draw(font_id, str_to_draw)
 
     def send_request(self, context, record_filename):
@@ -401,13 +415,15 @@ class OPENAI_OT_GenerateCodeFromAudio(bpy.types.Operator):
         }
 
         if not prefs.async_execution:
-            sync_request(api_key, 'GENERATE_CODE_FROM_AUDIO', request, options, context, self)
+            sync_request(api_key, 'GENERATE_CODE_FROM_AUDIO', request,
+                         options, context, self)
         else:
             transaction_data = {
                 "type": 'CODE',
                 "title": "",
             }
-            async_request(api_key, 'GENERATE_CODE_FROM_AUDIO', request, options, transaction_data)
+            async_request(api_key, 'GENERATE_CODE_FROM_AUDIO', request,
+                          options, transaction_data)
             # Run Message Processing Timer if it has not launched yet.
             bpy.ops.system.openai_process_message()
 
@@ -417,31 +433,33 @@ class OPENAI_OT_GenerateCodeFromAudio(bpy.types.Operator):
     def finalize(self, context):
         cls = self.__class__
 
-        cls._recorder = None
+        cls.recorder = None
 
-        if cls._timer is not None:
+        if cls.timer is not None:
             wm = context.window_manager
-            wm.event_timer_remove(cls._timer)
-            cls._timer = None
-        if cls._draw_cb["space_data"] is not None and cls._draw_cb["handler"] is not None:
-            cls._draw_cb["space_data"].draw_handler_remove(cls._draw_cb["handler"], 'WINDOW')
+            wm.event_timer_remove(cls.timer)
+            cls.timer = None
+        if cls.draw_cb["space_data"] is not None and \
+                cls.draw_cb["handler"] is not None:
+            cls.draw_cb["space_data"].draw_handler_remove(
+                cls.draw_cb["handler"], 'WINDOW')
 
     def modal(self, context, event):
         cls = self.__class__
 
         if event.type == 'ESC':
-            cls._recorder.abort_recording()
+            cls.recorder.abort_recording()
 
             self.finalize(context)
             context.area.tag_redraw()
 
             return {'CANCELLED'}
         elif event.type == 'TIMER':
-            if cls._recorder is not None and cls._recorder.record_ended():
+            if cls.recorder is not None and cls.recorder.record_ended():
                 dirname = f"{AUDIO_DATA_DIR}/record"
                 os.makedirs(dirname, exist_ok=True)
                 record_filename = f"{dirname}/{uuid.uuid4()}.wav"
-                cls._recorder.save(record_filename)
+                cls.recorder.save(record_filename)
 
                 self.finalize(context)
                 self.send_request(context, record_filename)
@@ -459,16 +477,19 @@ class OPENAI_OT_GenerateCodeFromAudio(bpy.types.Operator):
         user_prefs = context.preferences
         prefs = user_prefs.addons["openai_bridge"].preferences
 
-        cls._timer = wm.event_timer_add(0.1, window=context.window)
+        cls.timer = wm.event_timer_add(0.1, window=context.window)
         wm.modal_handler_add(self)
 
-        cls._draw_cb["space_data"] = bpy.types.SpaceView3D
-        cls._draw_cb["handler"] = bpy.types.SpaceView3D.draw_handler_add(cls.draw_status, (context, ), 'WINDOW', 'POST_PIXEL')
+        cls.draw_cb["space_data"] = bpy.types.SpaceView3D
+        cls.draw_cb["handler"] = bpy.types.SpaceView3D.draw_handler_add(
+            cls.draw_status, (context, ), 'WINDOW', 'POST_PIXEL')
 
-        cls._recorder = AudioRecorder(prefs.audio_record_format, prefs.audio_record_channels, prefs.audio_record_rate,
-                                      prefs.audio_record_chunk_size, prefs.audio_record_silence_threshold,
-                                      prefs.audio_record_silence_duration_limit)
-        cls._recorder.record(async_execution=True)
+        cls.recorder = AudioRecorder(
+            prefs.audio_record_format, prefs.audio_record_channels,
+            prefs.audio_record_rate, prefs.audio_record_chunk_size,
+            prefs.audio_record_silence_threshold,
+            prefs.audio_record_silence_duration_limit)
+        cls.recorder.record(async_execution=True)
 
         return {'RUNNING_MODAL'}
 
@@ -500,7 +521,7 @@ class OPENAI_OT_GenerateCode(bpy.types.Operator):
         default=False,
     )
 
-    def get_codes(self, context):
+    def get_codes(self, _):
         code_dir = f"{CODE_DATA_DIR}/codes"
         if not os.path.isdir(code_dir):
             return []
@@ -525,7 +546,7 @@ class OPENAI_OT_GenerateCode(bpy.types.Operator):
         default=False,
     )
 
-    def draw(self, context):
+    def draw(self, _):
         layout = self.layout
 
         layout.prop(self, "prompt")
@@ -540,15 +561,14 @@ class OPENAI_OT_GenerateCode(bpy.types.Operator):
             sp = sp.split(factor=1.0)
             sp.prop(condition, "condition", text=f"{i+1}")
 
-
-    def invoke(self, context, event):
+    def invoke(self, context, _):
         wm = context.window_manager
         user_prefs = context.preferences
         prefs = user_prefs.addons["openai_bridge"].preferences
 
         self.conditions.clear()
 
-        for i in range(self.num_conditions):
+        for _ in range(self.num_conditions):
             self.conditions.add()
 
         return wm.invoke_props_dialog(self, width=prefs.popup_menu_width)
@@ -603,13 +623,15 @@ class OPENAI_OT_GenerateCode(bpy.types.Operator):
             options["code"] = self.new_code_name
 
         if not prefs.async_execution:
-            sync_request(api_key, 'GENERATE_CODE', request, options, context, self)
+            sync_request(api_key, 'GENERATE_CODE', request, options,
+                         context, self)
         else:
             transaction_data = {
                 "type": 'CODE',
                 "title": options["code"][0:32],
             }
-            async_request(api_key, 'GENERATE_CODE', request, options, transaction_data)
+            async_request(api_key, 'GENERATE_CODE', request, options,
+                          transaction_data)
             # Run Message Processing Timer if it has not launched yet.
             bpy.ops.system.openai_process_message()
 
@@ -641,7 +663,7 @@ class OPENAI_OT_EditCode(bpy.types.Operator):
         name="Fix Target Text Block Name",
     )
 
-    def draw(self, context):
+    def draw(self, _):
         layout = self.layout
 
         layout.prop(self, "prompt")
@@ -656,14 +678,14 @@ class OPENAI_OT_EditCode(bpy.types.Operator):
             sp = sp.split(factor=1.0)
             sp.prop(condition, "condition", text=f"{i+1}")
 
-    def invoke(self, context, event):
+    def invoke(self, context, _):
         wm = context.window_manager
         user_prefs = context.preferences
         prefs = user_prefs.addons["openai_bridge"].preferences
 
         self.conditions.clear()
 
-        for i in range(self.num_conditions):
+        for _ in range(self.num_conditions):
             self.conditions.add()
 
         return wm.invoke_props_dialog(self, width=prefs.popup_menu_width)
@@ -728,7 +750,8 @@ Edit the [Code] from the below [Instruction].
                 "type": 'EDIT_CODE',
                 "title": options["code"][0:32],
             }
-            async_request(api_key, 'EDIT_CODE', request, options, transaction_data)
+            async_request(api_key, 'EDIT_CODE', request, options,
+                          transaction_data)
             # Run Message Processing Timer if it has not launched yet.
             bpy.ops.system.openai_process_message()
 

@@ -4,6 +4,7 @@
 
 ## [Unreleased](https://github.com/nutti/OpenAI-Bridge/compare/v0.2.0...main)
 
+<!-- markdownlint-disable-next-line MD013 -->
 ## [Version 0.2.0](https://github.com/nutti/OpenAI-Bridge/compare/v0.1.0...v0.2.0) - 2023.3.29
 
 ### New Features
@@ -23,13 +24,18 @@
 ### Other Updates
 
 * Improve UI for accessing tools more friendly.
-  * (Image Tool) Add [Generate Image] panel and [Generated Images] panel (with [OpenAI] tab) to the sidebar of Image Editor.
+  * (Image Tool) Add [Generate Image] panel and [Generated Images] panel (with
+    [OpenAI] tab) to the sidebar of Image Editor.
   * (Image Tool) Move workspace tool to Image Editor.
-  * (Audio Tool) Add [Transcribe Sound Strip] panel (with [OpenAI] tab) to the sidebar of Sequence Editor.
-  * (Audio Tool) Add [Transcribe Audio] panel (with [OpenAI] tab) to the sidebar of Text Editor.
+  * (Audio Tool) Add [Transcribe Sound Strip] panel (with [OpenAI] tab) to the
+    sidebar of Sequence Editor.
+  * (Audio Tool) Add [Transcribe Audio] panel (with [OpenAI] tab) to the
+    sidebar of Text Editor.
   * (Audio Tool) Move workspace tool to Sequence Editor
-  * (Chat Tool) Add [Chat] panel (with [OpenAI] tab) to the sidebar of 3D Viewport.
+  * (Chat Tool) Add [Chat] panel (with [OpenAI] tab) to the sidebar of
+    3D Viewport.
 
+<!-- markdownlint-disable-next-line MD013 -->
 ## [Version 0.1.0](https://github.com/nutti/OpenAI-Bridge/compare/a8a4c9785ce166a1d77c060ea58b9b45ec4d4355...v0.1.0) - 2023.3.18
 
 * First release

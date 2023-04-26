@@ -1,5 +1,6 @@
 if "bpy" in locals():
     import importlib
+    # pylint: disable=E0601
     importlib.reload(audio_recorder)
     importlib.reload(pip)
     importlib.reload(common)
@@ -12,6 +13,7 @@ else:
     from . import error_storage
     from . import threading
 
+# pylint: disable=C0413
 import bpy
 
 

@@ -27,7 +27,8 @@ The features of this add-on are as follows.
   * Supported Models: 'whisper-1'
 * Chat
   * Chat: Chat using the OpenAI Chat API.
-  * Ask Blender Operators/Properties: Ask Blender operators/properties from the right-click menu.
+  * Ask Blender Operators/Properties: Ask Blender operators/properties from the
+    right-click menu.
   * Supported Models: 'gpt-3.5-turbo', 'gpt-4', 'gpt-4-32k'
 
 ### Features for Future Releases
@@ -35,7 +36,8 @@ The features of this add-on are as follows.
 * Image Tool
   * Edit Image: Edit images using the OpenAI API.
 * Code Tool
-  * Generate Sample Code: Generate sample codes for Blender operators/properties from the right-click menu.
+  * Generate Sample Code: Generate sample codes for Blender
+    operators/properties from the right-click menu.
   * Execute Code Immediately: Execute code immediately from the prompt/audio.
 * Improve Async Execution
   * Show the status of the asynchronous exeuction.

@@ -46,7 +46,8 @@ class OPENAI_OT_TranscribeSoundStrip(bpy.types.Operator):
     )
     target_sequence_channel: bpy.props.IntProperty(
         name="Target Sequence Channel",
-        description="Sequence channel where the transcription result to be created",
+        description="""Sequence channel where the transcription result to be
+created""",
         min=1,
         max=128,
         default=1,
@@ -78,7 +79,7 @@ class OPENAI_OT_TranscribeSoundStrip(bpy.types.Operator):
         r.prop(props, "sequence_channel", text="Channel")
         r.enabled = not props.auto_sequence_channel
 
-    def invoke(self, context, event):
+    def invoke(self, context, _):
         wm = context.window_manager
         user_prefs = context.preferences
         prefs = user_prefs.addons["openai_bridge"].preferences
@@ -88,7 +89,8 @@ class OPENAI_OT_TranscribeSoundStrip(bpy.types.Operator):
         if context.scene.sequence_editor.active_strip.type != 'SOUND':
             return {'CANCELLED'}
 
-        self.source_sound_strip_name = context.scene.sequence_editor.active_strip.name
+        self.source_sound_strip_name = \
+            context.scene.sequence_editor.active_strip.name
         self.target = 'TEXT_STRIP'
 
         return wm.invoke_props_dialog(self, width=prefs.popup_menu_width)
@@ -99,11 +101,12 @@ class OPENAI_OT_TranscribeSoundStrip(bpy.types.Operator):
         prefs = user_prefs.addons["openai_bridge"].preferences
         api_key = prefs.api_key
 
-        sequence = context.scene.sequence_editor.sequences[self.source_sound_strip_name]
+        sequences = context.scene.sequence_editor.sequences
+        sequence = sequences[self.source_sound_strip_name]
         filepath = sequence.sound.filepath
 
         request = {
-            "file": (filepath, open(filepath, "rb")),
+            "file": (filepath, open(filepath, "rb")),   # pylint: disable=R1732
             "model": (None, prefs.audio_tool_model),
             "prompt": (None, self.prompt),
             "response_format": (None, "json"),
@@ -111,24 +114,27 @@ class OPENAI_OT_TranscribeSoundStrip(bpy.types.Operator):
             "language": (None, self.language),
         }
 
+        strip_end = sequence.frame_final_start + sequence.frame_final_duration
         options = {
             "target": self.target,
             "target_sequence_channel": self.target_sequence_channel,
             "strip_start": sequence.frame_final_start,
-            "strip_end": sequence.frame_final_start + sequence.frame_final_duration,
+            "strip_end": strip_end,
             "fps": sc.render.fps / sc.render.fps_base,
             "http_proxy": prefs.http_proxy,
             "https_proxy": prefs.https_proxy,
         }
 
         if not prefs.async_execution:
-            sync_request(api_key, 'TRANSCRIBE_AUDIO', request, options, context, self)
+            sync_request(api_key, 'TRANSCRIBE_AUDIO', request, options,
+                         context, self)
         else:
             transaction_data = {
                 "type": 'AUDIO',
                 "title": filepath[0:32],
             }
-            async_request(api_key, 'TRANSCRIBE_AUDIO', request, options, transaction_data)
+            async_request(api_key, 'TRANSCRIBE_AUDIO', request, options,
+                          transaction_data)
             # Run Message Processing Timer if it has not launched yet.
             bpy.ops.system.openai_process_message()
 
@@ -147,8 +153,9 @@ class OPENAI_OT_OpenAudioFile(bpy.types.Operator, ImportHelper):
 
     def execute(self, context):
         sc = context.scene
+        props = sc.openai_audio_tool_transcribe_audio_file_props
 
-        sc.openai_audio_tool_transcribe_audio_file_props.source_audio_filepath = self.properties.filepath
+        props.source_audio_filepath = self.properties.filepath
 
         context.area.tag_redraw()
 
@@ -186,13 +193,13 @@ class OPENAI_OT_TranscribeAudioFile(bpy.types.Operator):
     )
 
     def execute(self, context):
-        sc = context.scene
         user_prefs = context.preferences
         prefs = user_prefs.addons["openai_bridge"].preferences
         api_key = prefs.api_key
 
         request = {
-            "file": (os.path.basename(self.audio_filepath), open(self.audio_filepath, "rb")),
+            "file": (os.path.basename(self.audio_filepath),
+                     open(self.audio_filepath, "rb")),  # pylint: disable=R1732
             "model": (None, prefs.audio_tool_model),
             "prompt": (None, self.prompt),
             "response_format": (None, "json"),
@@ -208,13 +215,16 @@ class OPENAI_OT_TranscribeAudioFile(bpy.types.Operator):
         }
 
         if not prefs.async_execution:
-            sync_request(api_key, 'TRANSCRIBE_AUDIO', request, options, context, self)
+            sync_request(
+                api_key, 'TRANSCRIBE_AUDIO', request, options, context, self)
         else:
             transaction_data = {
                 "type": 'AUDIO',
                 "title": self.audio_filepath[0:32],
             }
-            async_request(api_key, 'TRANSCRIBE_AUDIO', request, options, transaction_data)
+            async_request(
+                api_key, 'TRANSCRIBE_AUDIO', request, options,
+                transaction_data)
             # Run Message Processing Timer if it has not launched yet.
             bpy.ops.system.openai_process_message()
 

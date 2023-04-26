@@ -1,16 +1,16 @@
-import bpy
-import blf
-import gpu
-from gpu_extras.batch import batch_for_shader
 import json
 import os
-import requests
 import threading
 import time
 from urllib.parse import urlparse
 import math
 from collections import OrderedDict
 import uuid
+import requests
+import bpy
+import blf
+import gpu
+from gpu_extras.batch import batch_for_shader
 
 from ..utils.common import (
     get_area_region_space,
@@ -39,29 +39,30 @@ class OPENAI_OT_ProcessMessage(bpy.types.Operator):
     transaction_ids = OrderedDict()
     transaction_ids_lock = threading.Lock()
 
-    _timer = None
-    _draw_cb = {"space_data": None, "handler": None}
+    timer = None
+    draw_cb = {"space_data": None, "handler": None}
 
     @classmethod
-    def process(cls, transaction_id, type, data, options, sync=False, context=None, operator_instance=None):
-        message = {"transaction_id": transaction_id, "type": type, "data": data, "options": options}
-        if sync:
-            cls.sync_process(context, operator_instance, message)
+    def process(cls, transaction_id, type_, data, options, exec_params):
+        message = {"transaction_id": transaction_id, "type": type_,
+                   "data": data, "options": options}
+        if exec_params["sync"]:
+            cls.sync_process(exec_params["context"],
+                             exec_params["operator_instance"], message)
         else:
             cls.async_process(message)
 
     @classmethod
     def async_process(cls, message):
-        cls.message_queue_lock.acquire()
-        cls.message_queue.append(message)
-        cls.message_queue_lock.release()
+        with cls.message_queue_lock:
+            cls.message_queue.append(message)
 
     @classmethod
     def sync_process(cls, context, operator_instance, message):
         cls.process_message_internal(context, operator_instance, message)
 
     @classmethod
-    def process_message_internal(cls, context: bpy.types.Context, operator_instance, message):
+    def process_message_internal(cls, context, operator_instance, message):
         transaction_id = message["transaction_id"]
         msg_type = message["type"]
         data = message["data"]
@@ -71,35 +72,42 @@ class OPENAI_OT_ProcessMessage(bpy.types.Operator):
             sc = context.scene
             for tool, stat in data["usage_stats"].items():
                 if tool == 'IMAGE':
+                    stats_image_tool = sc.openai_usage_statistics_image_tool
                     if stat["size"] == "1024x1024":
-                        sc.openai_usage_statistics_image_tool.images_1024x1024 += stat["num_images"]
+                        stats_image_tool.images_1024x1024 += stat["num_images"]
                     elif stat["size"] == "512x512":
-                        sc.openai_usage_statistics_image_tool.images_512x512 += stat["num_images"]
+                        stats_image_tool.images_512x512 += stat["num_images"]
                     elif stat["size"] == "256x256":
-                        sc.openai_usage_statistics_image_tool.images_256x256 += stat["num_images"]
+                        stats_image_tool.images_256x256 += stat["num_images"]
                 elif tool == 'AUDIO':
+                    stats_audio_tool = sc.openai_usage_statistics_audio_tool
                     if stat["model"] == "whisper-1":
-                        sc.openai_usage_statistics_audio_tool.seconds_whisper += stat["num_seconds"]
+                        stats_audio_tool.seconds_whisper += stat["num_seconds"]
                 elif tool == 'CHAT':
+                    stats_chat_tool = sc.openai_usage_statistics_chat_tool
                     if stat["model"] == "gpt-3.5-turbo":
-                        sc.openai_usage_statistics_chat_tool.tokens_gpt35_turbo += stat["num_tokens"]
+                        stats_chat_tool.tokens_gpt35_turbo += \
+                            stat["num_tokens"]
                     elif stat["model"] == "gpt-4":
-                        sc.openai_usage_statistics_chat_tool.tokens_gpt4_8k += stat["num_tokens"]
+                        stats_chat_tool.tokens_gpt4_8k += stat["num_tokens"]
                     elif stat["model"] == "gpt-4-32k":
-                        sc.openai_usage_statistics_chat_tool.tokens_gpt4_32k += stat["num_tokens"]
+                        stats_chat_tool.tokens_gpt4_32k += stat["num_tokens"]
                 elif tool == 'CODE':
+                    stats_code_tool = sc.openai_usage_statistics_code_tool
                     if stat["model"] == "gpt-3.5-turbo":
-                        sc.openai_usage_statistics_code_tool.tokens_gpt35_turbo += stat["num_tokens"]
+                        stats_code_tool.tokens_gpt35_turbo += \
+                            stat["num_tokens"]
                     elif stat["model"] == "gpt-4":
-                        sc.openai_usage_statistics_code_tool.tokens_gpt4_8k += stat["num_tokens"]
+                        stats_code_tool.tokens_gpt4_8k += stat["num_tokens"]
                     elif stat["model"] == "gpt-4-32k":
-                        sc.openai_usage_statistics_code_tool.tokens_gpt4_32k += stat["num_tokens"]
+                        stats_code_tool.tokens_gpt4_32k += stat["num_tokens"]
 
         if msg_type == 'IMAGE':
             filepath = data["filepath"]
             new_image = bpy.data.images.load(filepath=filepath)
             # Focus on the generated image in Image Editor.
-            _, _, space = get_area_region_space(context, 'IMAGE_EDITOR', 'WINDOW', 'IMAGE_EDITOR')
+            _, _, space = get_area_region_space(
+                context, 'IMAGE_EDITOR', 'WINDOW', 'IMAGE_EDITOR')
             if space is not None:
                 space.image = new_image
         elif msg_type == 'AUDIO':
@@ -110,13 +118,16 @@ class OPENAI_OT_ProcessMessage(bpy.types.Operator):
                 text_data = bpy.data.texts[options["target_text_name"]]
                 text_data.write(text)
                 # Focus on the text in Text Editor.
-                _, _, space = get_area_region_space(context, 'TEXT_EDITOR', 'WINDOW', 'TEXT_EDITOR')
+                _, _, space = get_area_region_space(
+                    context, 'TEXT_EDITOR', 'WINDOW', 'TEXT_EDITOR')
                 if space is not None:
                     space.text = text_data
             elif options["target"] == 'TEXT_STRIP':
                 seq_data = context.scene.sequence_editor.sequences.new_effect(
-                    name="Transcript", type='TEXT', channel=options["target_sequence_channel"],
-                    frame_start=options["strip_start"], frame_end=options["strip_end"])
+                    name="Transcript", type='TEXT',
+                    channel=options["target_sequence_channel"],
+                    frame_start=options["strip_start"],
+                    frame_end=options["strip_end"])
                 seq_data.text = text
                 # Focus on the sequence in Sequencer.
                 for s in context.scene.sequence_editor.sequences:
@@ -135,14 +146,16 @@ class OPENAI_OT_ProcessMessage(bpy.types.Operator):
                 text_data = bpy.data.texts.new(options["code"])
                 text_data.write(code_to_execute)
                 # Focus on the text in Text Editor.
-                _, _, space = get_area_region_space(context, 'TEXT_EDITOR', 'WINDOW', 'TEXT_EDITOR')
+                _, _, space = get_area_region_space(
+                    context, 'TEXT_EDITOR', 'WINDOW', 'TEXT_EDITOR')
                 if space is not None:
                     space.text = text_data
             if options["execute_immediately"]:
                 try:
-                    exec(code_to_execute)
-                except Exception as e:
-                    error_key = error_storage.get_error_key('CODE', code_to_execute, 0, 0)
+                    exec(code_to_execute)   # pylint: disable=W0122
+                except Exception as e:  # pylint: disable=W0703
+                    error_key = error_storage.get_error_key(
+                        'CODE', code_to_execute, 0, 0)
                     error_storage.store_error(error_key, str(e))
         elif message["type"] == 'ERROR':
             exception = data["exception"]
@@ -155,12 +168,10 @@ class OPENAI_OT_ProcessMessage(bpy.types.Operator):
 
     def process_message(self, context):
         cls = self.__class__
-        cls.message_queue_lock.acquire()
-        if len(cls.message_queue) == 0:
-            cls.message_queue_lock.release()
-            return None
-        message = cls.message_queue.pop(0)
-        cls.message_queue_lock.release()
+        with cls.message_queue_lock:
+            if len(cls.message_queue) == 0:
+                return None
+            message = cls.message_queue.pop(0)
 
         transaction_id = cls.process_message_internal(context, self, message)
 
@@ -170,26 +181,26 @@ class OPENAI_OT_ProcessMessage(bpy.types.Operator):
 
         return transaction_id
 
-    def modal(self, context ,event):
+    def modal(self, context, event):
         cls = self.__class__
 
         if event.type == 'TIMER':
             msg_key = self.process_message(context)
             if msg_key is not None:
-                cls.transaction_ids_lock.acquire()
-                assert msg_key in cls.transaction_ids
-                del cls.transaction_ids[msg_key]
-                if len(cls.transaction_ids) == 0:
-                    wm = context.window_manager
-                    wm.event_timer_remove(cls._timer)
-                    cls._timer = None
-                    if cls._draw_cb["space_data"] is not None and cls._draw_cb["handler"] is not None:
-                        cls._draw_cb["space_data"].draw_handler_remove(cls._draw_cb["handler"], 'WINDOW')
+                with cls.transaction_ids_lock:
+                    assert msg_key in cls.transaction_ids
+                    del cls.transaction_ids[msg_key]
+                    if len(cls.transaction_ids) == 0:
+                        wm = context.window_manager
+                        wm.event_timer_remove(cls.timer)
+                        cls.timer = None
+                        if cls.draw_cb["space_data"] is not None and \
+                                cls.draw_cb["handler"] is not None:
+                            cls.draw_cb["space_data"].draw_handler_remove(
+                                cls.draw_cb["handler"], 'WINDOW')
 
-                    cls.transaction_ids_lock.release()
-                    print("Terminated Message Processing Timer")
-                    return {'FINISHED'}
-                cls.transaction_ids_lock.release()
+                        print("Terminated Message Processing Timer")
+                        return {'FINISHED'}
 
             context.area.tag_redraw()
 
@@ -223,7 +234,8 @@ class OPENAI_OT_ProcessMessage(bpy.types.Operator):
             [2, 3, 0]
         ]
         shader = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
-        batch = batch_for_shader(shader, 'TRIS', vertex_data, indices=index_data)
+        batch = batch_for_shader(
+            shader, 'TRIS', vertex_data, indices=index_data)
         shader.bind()
         shader.uniform_float("color", [0.0, 0.0, 0.0, 0.6])
         batch.draw(shader)
@@ -237,9 +249,11 @@ class OPENAI_OT_ProcessMessage(bpy.types.Operator):
         blf.draw(font_id, "Processing Requests ...")
 
         # Draw rest transactions.
+        consumed = cls.section_stats["transaction_consumed_total"]
+        total = cls.section_stats["transaction_total"]
         blf.position(font_id, base_x + 10.0, base_y + 120.0, 0)
         blf.size(font_id, 12)
-        blf.draw(font_id, f"({cls.section_stats['transaction_consumed_total']}/{cls.section_stats['transaction_total']})")
+        blf.draw(font_id, f"({consumed}/{total})")
 
         # Draw process transaction.
         count = 0
@@ -248,7 +262,8 @@ class OPENAI_OT_ProcessMessage(bpy.types.Operator):
                 break
             ts_type = item["type"]
             ts_title = item["title"]
-            blf.position(font_id, base_x + 10.0, base_y + 100.0 - count * 20.0, 0)
+            blf.position(
+                font_id, base_x + 10.0, base_y + 100.0 - count * 20.0, 0)
             blf.draw(font_id, f"[{ts_type}] {ts_title}")
             count += 1
 
@@ -260,25 +275,29 @@ class OPENAI_OT_ProcessMessage(bpy.types.Operator):
 
         cls.section_stats["transaction_total"] += 1
 
-        if cls._timer:
+        if cls.timer:
             return {'FINISHED'}
 
         # Initialize statistics.
         cls.section_stats["transaction_total"] = 1
         cls.section_stats["transaction_consumed_total"] = 0
 
-        cls._timer = wm.event_timer_add(0.1, window=context.window)
+        cls.timer = wm.event_timer_add(0.1, window=context.window)
         wm.modal_handler_add(self)
         if prefs.show_request_status:
-            if context.space_data.type in ('VIEW_3D', 'IMAGE_EDITOR', 'SEQUENCE_EDITOR', 'TEXT_EDITOR'):
-                cls._draw_cb["space_data"] = context.space_data
-                cls._draw_cb["handler"] = context.space_data.draw_handler_add(cls.draw_status, (context, ), 'WINDOW', 'POST_PIXEL')
+            if context.space_data.type in ('VIEW_3D', 'IMAGE_EDITOR',
+                                           'SEQUENCE_EDITOR', 'TEXT_EDITOR'):
+                cls.draw_cb["space_data"] = context.space_data
+                cls.draw_cb["handler"] = context.space_data.draw_handler_add(
+                    cls.draw_status, (context, ), 'WINDOW', 'POST_PIXEL')
             else:
-                cls._draw_cb["space_data"] = bpy.types.SpaceView3D
-                cls._draw_cb["handler"] = bpy.types.SpaceView3D.draw_handler_add(cls.draw_status, (context, ), 'WINDOW', 'POST_PIXEL')
+                cls.draw_cb["space_data"] = bpy.types.SpaceView3D
+                cls.draw_cb["handler"] = \
+                    bpy.types.SpaceView3D.draw_handler_add(
+                        cls.draw_status, (context, ), 'WINDOW', 'POST_PIXEL')
         else:
-            cls._draw_cb["space_data"] = None
-            cls._draw_cb["handler"] = None
+            cls.draw_cb["space_data"] = None
+            cls.draw_cb["handler"] = None
 
         print("Launched Message Processing Timer")
 
@@ -294,9 +313,8 @@ class RequestHandler:
 
     @classmethod
     def add_request(cls, request):
-        cls.request_queue_lock.acquire()
-        cls.request_queue.append(request)
-        cls.request_queue_lock.release()
+        with cls.request_queue_lock:    # pylint: disable=E1129
+            cls.request_queue.append(request)
 
     @classmethod
     def start(cls):
@@ -320,7 +338,8 @@ class RequestHandler:
         print("RequestHandler is stopped.")
 
     @classmethod
-    def handle_generate_image_request(cls, api_key, transaction_id, req_data, options, sync, context=None, operator_instance=None):
+    def handle_generate_image_request(
+            cls, api_key, transaction_id, req_data, options, exec_params):
         # Send prompt.
         headers = {
             "Content-Type": "application/json",
@@ -330,9 +349,9 @@ class RequestHandler:
             "http": options["http_proxy"],
             "https": options["https_proxy"],
         }
-        response = requests.post("https://api.openai.com/v1/images/generations",
-                                 headers=headers, data=json.dumps(req_data),
-                                 proxies=proxies)
+        response = requests.post(
+            "https://api.openai.com/v1/images/generations",
+            headers=headers, data=json.dumps(req_data), proxies=proxies)
         response.raise_for_status()
         response_data = response.json()
 
@@ -366,12 +385,17 @@ class RequestHandler:
                 },
             }
 
-            OPENAI_OT_ProcessMessage.process(transaction_id, 'IMAGE', {"filepath": filepath, "usage_stats": usage_stats}, options, sync=sync, context=context, operator_instance=operator_instance)
+            OPENAI_OT_ProcessMessage.process(
+                transaction_id, 'IMAGE',
+                {"filepath": filepath, "usage_stats": usage_stats},
+                options, exec_params)
 
-        OPENAI_OT_ProcessMessage.process(transaction_id, 'END_OF_TRANSACTION', None, None, sync=sync, context=context, operator_instance=operator_instance)
+        OPENAI_OT_ProcessMessage.process(
+            transaction_id, 'END_OF_TRANSACTION', None, None, exec_params)
 
     @classmethod
-    def handle_edit_image_request(cls, api_key, transaction_id, req_data, options, sync, context=None, operator_instance=None):
+    def handle_edit_image_request(
+            cls, api_key, transaction_id, req_data, options, exec_params):
         # Send prompt.
         headers = {
             "Authorization": f"Bearer {api_key}"
@@ -417,12 +441,17 @@ class RequestHandler:
                 },
             }
 
-            OPENAI_OT_ProcessMessage.process(transaction_id, 'IMAGE', {"filepath": filepath, "usage_stats": usage_stats}, options, sync=sync, context=context, operator_instance=operator_instance)
+            OPENAI_OT_ProcessMessage.process(
+                transaction_id, 'IMAGE',
+                {"filepath": filepath, "usage_stats": usage_stats},
+                options, exec_params)
 
-        OPENAI_OT_ProcessMessage.process(transaction_id, 'END_OF_TRANSACTION', None, None, sync=sync, context=context, operator_instance=operator_instance)
+        OPENAI_OT_ProcessMessage.process(
+            transaction_id, 'END_OF_TRANSACTION', None, None, exec_params)
 
     @classmethod
-    def handle_generate_variation_image_request(cls, api_key, transaction_id, req_data, options, sync, context=None, operator_instance=None):
+    def handle_generate_variation_image_request(
+            cls, api_key, transaction_id, req_data, options, exec_params):
         # Send prompt.
         headers = {
             "Authorization": f"Bearer {api_key}"
@@ -467,12 +496,17 @@ class RequestHandler:
                 },
             }
 
-            OPENAI_OT_ProcessMessage.process(transaction_id, 'IMAGE', {"filepath": filepath, "usage_stats": usage_stats}, options, sync=sync, context=context, operator_instance=operator_instance)
+            OPENAI_OT_ProcessMessage.process(
+                transaction_id, 'IMAGE',
+                {"filepath": filepath, "usage_stats": usage_stats},
+                options, exec_params)
 
-        OPENAI_OT_ProcessMessage.process(transaction_id, 'END_OF_TRANSACTION', None, None, sync=sync, context=context, operator_instance=operator_instance)
+        OPENAI_OT_ProcessMessage.process(
+            transaction_id, 'END_OF_TRANSACTION', None, None, exec_params)
 
     @classmethod
-    def handle_transcribe_audio_request(cls, api_key, transaction_id, req_data, options, sync, context=None, operator_instance=None):
+    def handle_transcribe_audio_request(
+            cls, api_key, transaction_id, req_data, options, exec_params):
         # Send audio.
         headers = {
             "Authorization": f"Bearer {api_key}"
@@ -481,26 +515,33 @@ class RequestHandler:
             "http": options["http_proxy"],
             "https": options["https_proxy"],
         }
-        response = requests.post("https://api.openai.com/v1/audio/transcriptions",
-                                 headers=headers, files=req_data,
-                                 proxies=proxies)
+        response = requests.post(
+            "https://api.openai.com/v1/audio/transcriptions",
+            headers=headers, files=req_data, proxies=proxies)
         response.raise_for_status()
         response_data = response.json()
 
         usage_stats = {}
         if "strip_start" in options and "strip_end" in options:
-            # TODO: Improve the statistics by checking the length of audio file.
+            # TODO: Improve the statistics by checking the length of
+            #       audio file.
+            duration = options["strip_end"] - options["strip_start"]
             usage_stats['AUDIO'] = {
                 "model": req_data["model"][1],
-                "num_seconds": math.ceil((options["strip_end"] - options["strip_start"]) / options["fps"]),
+                "num_seconds": math.ceil(duration / options["fps"]),
             }
 
         # Post message.
-        OPENAI_OT_ProcessMessage.process(transaction_id, 'AUDIO', {"text": response_data["text"], "usage_stats": usage_stats}, options, sync=sync, context=context, operator_instance=operator_instance)
-        OPENAI_OT_ProcessMessage.process(transaction_id, 'END_OF_TRANSACTION', None, None, sync=sync, context=context, operator_instance=operator_instance)
+        OPENAI_OT_ProcessMessage.process(
+            transaction_id, 'AUDIO',
+            {"text": response_data["text"], "usage_stats": usage_stats},
+            options, exec_params)
+        OPENAI_OT_ProcessMessage.process(
+            transaction_id, 'END_OF_TRANSACTION', None, None, exec_params)
 
     @classmethod
-    def handle_chat_request(cls, api_key, transaction_id, req_data, options, sync, context=None, operator_instance=None):
+    def handle_chat_request(
+            cls, api_key, transaction_id, req_data, options, exec_params):
         user_text = req_data["messages"][0]["content"]
         condition_texts = []
         for text in req_data["messages"][1:]:
@@ -543,7 +584,8 @@ class RequestHandler:
             })
             req_data["messages"] = additional_messages + req_data["messages"]
 
-        OPENAI_OT_ProcessMessage.process(transaction_id, 'CHAT', {}, options, sync=sync, context=context, operator_instance=operator_instance)
+        OPENAI_OT_ProcessMessage.process(
+            transaction_id, 'CHAT', {}, options, exec_params)
 
         # Send prompt.
         headers = {
@@ -562,7 +604,8 @@ class RequestHandler:
         response_text = response_data["choices"][0]["message"]["content"]
 
         # Save response text.
-        chat_file.modify_part(chat_file.num_parts() - 1, response_data=response_text)
+        chat_file.modify_part(
+            chat_file.num_parts() - 1, response_data=response_text)
         chat_file.save()
 
         usage_stats = {
@@ -573,11 +616,15 @@ class RequestHandler:
         }
 
         # Post to message queue.
-        OPENAI_OT_ProcessMessage.process(transaction_id, 'CHAT', {"usage_stats": usage_stats}, options, sync=sync, context=context, operator_instance=operator_instance)
-        OPENAI_OT_ProcessMessage.process(transaction_id, 'END_OF_TRANSACTION', None, None, sync=sync, context=context, operator_instance=operator_instance)
+        OPENAI_OT_ProcessMessage.process(
+            transaction_id, 'CHAT', {"usage_stats": usage_stats},
+            options, exec_params)
+        OPENAI_OT_ProcessMessage.process(
+            transaction_id, 'END_OF_TRANSACTION', None, None, exec_params)
 
     @classmethod
-    def handle_generate_code_request(cls, api_key, transaction_id, req_data, options, sync, context=None, operator_instance=None):
+    def handle_generate_code_request(
+            cls, api_key, transaction_id, req_data, options, exec_params):
         # Send prompt.
         headers = {
             "Content-Type": "application/json",
@@ -601,7 +648,8 @@ class RequestHandler:
             if section["kind"] == 'CODE':
                 code_sections.append(section)
         if len(code_sections) != 1:
-            raise ValueError(f"Number of code section must be 1 but {len(code_sections)}")
+            raise ValueError(
+                f"Number of code section must be 1 but {len(code_sections)}")
         code_body = code_sections[0]["body"]
 
         os.makedirs(CODE_DATA_DIR, exist_ok=True)
@@ -617,18 +665,27 @@ class RequestHandler:
         }
 
         # Post to message queue.
-        OPENAI_OT_ProcessMessage.process(transaction_id, 'CODE', {"usage_stats": usage_stats}, options, sync=sync, context=context, operator_instance=operator_instance)
-        OPENAI_OT_ProcessMessage.process(transaction_id, 'END_OF_TRANSACTION', None, None, sync=sync, context=context, operator_instance=operator_instance)
+        OPENAI_OT_ProcessMessage.process(
+            transaction_id, 'CODE', {"usage_stats": usage_stats},
+            options, exec_params)
+        OPENAI_OT_ProcessMessage.process(
+            transaction_id, 'END_OF_TRANSACTION', None, None, exec_params)
 
     @classmethod
-    def handle_edit_code_request(cls, api_key, transaction_id, req_data, options, sync, context=None, operator_instance=None):
-        cls.handle_generate_code_request(api_key, transaction_id, req_data, options, sync, context, operator_instance)
+    def handle_edit_code_request(
+            cls, api_key, transaction_id, req_data, options, exec_params):
+        cls.handle_generate_code_request(
+            api_key, transaction_id, req_data, options, exec_params)
 
     @classmethod
-    def handle_generate_code_from_audio_request(cls, api_key, transaction_id, req_data, options, sync, context=None, operator_instance=None):
+    def handle_generate_code_from_audio_request(
+            cls, api_key, transaction_id, req_data, options, exec_params):
         # Send audio.
         audio_request = {
-            "file": (os.path.basename(options["audio_file"]), open(options["audio_file"], "rb")),
+            "file": (
+                os.path.basename(options["audio_file"]),
+                open(options["audio_file"], "rb")   # pylint: disable=R1732
+            ),
             "model": (None, options["audio_model"]),
             "prompt": (None, ""),
             "response_format": (None, "json"),
@@ -642,9 +699,9 @@ class RequestHandler:
             "http": options["http_proxy"],
             "https": options["https_proxy"],
         }
-        response = requests.post("https://api.openai.com/v1/audio/transcriptions",
-                                 headers=audio_headers, files=audio_request,
-                                 proxies=proxies)
+        response = requests.post(
+            "https://api.openai.com/v1/audio/transcriptions",
+            headers=audio_headers, files=audio_request, proxies=proxies)
         response.raise_for_status()
         response_data = response.json()
         req_data["messages"].append({
@@ -672,7 +729,8 @@ class RequestHandler:
             if section["kind"] == 'CODE':
                 code_sections.append(section)
         if len(code_sections) != 1:
-            raise ValueError(f"Number of code section must be 1 but {len(sections)}")
+            raise ValueError(
+                f"Number of code section must be 1 but {len(sections)}")
         code_body = code_sections[0]["body"]
 
         os.makedirs(CODE_DATA_DIR, exist_ok=True)
@@ -689,11 +747,14 @@ class RequestHandler:
         }
 
         # Post to message queue.
-        OPENAI_OT_ProcessMessage.process(transaction_id, 'CODE', {"usage_stats": usage_stats}, options, sync=sync, context=context, operator_instance=operator_instance)
-        OPENAI_OT_ProcessMessage.process(transaction_id, 'END_OF_TRANSACTION', None, None, sync=sync, context=context, operator_instance=operator_instance)
+        OPENAI_OT_ProcessMessage.process(
+            transaction_id, 'CODE', {"usage_stats": usage_stats},
+            options, exec_params)
+        OPENAI_OT_ProcessMessage.process(
+            transaction_id, 'END_OF_TRANSACTION', None, None, exec_params)
 
     @classmethod
-    def handle_request(cls, request, sync=False, context=None, operator_instance=None):
+    def handle_request(cls, request, exec_params):
         api_key = request[0]
         transaction_id = request[1]
         req_type = request[2]
@@ -701,57 +762,78 @@ class RequestHandler:
         options = request[4]
 
         if req_type == 'GENERATE_IMAGE':
-            cls.handle_generate_image_request(api_key, transaction_id, req_data, options, sync=sync, context=context, operator_instance=operator_instance)
+            cls.handle_generate_image_request(
+                api_key, transaction_id, req_data, options, exec_params)
         elif req_type == 'EDIT_IMAGE':
-            cls.handle_edit_image_request(api_key, transaction_id, req_data, options, sync=sync, context=context, operator_instance=operator_instance)
+            cls.handle_edit_image_request(
+                api_key, transaction_id, req_data, options, exec_params)
         elif req_type == 'GENERATE_VARIATION_IMAGE':
-            cls.handle_generate_variation_image_request(api_key, transaction_id, req_data, options, sync=sync, context=context, operator_instance=operator_instance)
+            cls.handle_generate_variation_image_request(
+                api_key, transaction_id, req_data, options, exec_params)
         elif req_type == 'TRANSCRIBE_AUDIO':
-            cls.handle_transcribe_audio_request(api_key, transaction_id, req_data, options, sync=sync, context=context, operator_instance=operator_instance)
+            cls.handle_transcribe_audio_request(
+                api_key, transaction_id, req_data, options, exec_params)
         elif req_type == 'CHAT':
-            cls.handle_chat_request(api_key, transaction_id, req_data, options, sync=sync, context=context, operator_instance=operator_instance)
+            cls.handle_chat_request(
+                api_key, transaction_id, req_data, options, exec_params)
         elif req_type == 'GENERATE_CODE':
-            cls.handle_generate_code_request(api_key, transaction_id, req_data, options, sync=sync, context=context, operator_instance=operator_instance)
+            cls.handle_generate_code_request(
+                api_key, transaction_id, req_data, options, exec_params)
         elif req_type == 'GENERATE_CODE_FROM_AUDIO':
-            cls.handle_generate_code_from_audio_request(api_key, transaction_id, req_data, options, sync=sync, context=context, operator_instance=operator_instance)
+            cls.handle_generate_code_from_audio_request(
+                api_key, transaction_id, req_data, options, exec_params)
         elif req_type == 'EDIT_CODE':
-            cls.handle_edit_code_request(api_key, transaction_id, req_data, options, sync=sync, context=context, operator_instance=operator_instance)
-
+            cls.handle_edit_code_request(
+                api_key, transaction_id, req_data, options, exec_params)
 
     @classmethod
     def send_loop(cls):
+        exec_params = {
+            "sync": False,
+            "context": None,
+            "operator_instance": None,
+        }
+
         while True:
             try:
                 if cls.should_stop:
                     break
 
-                cls.request_queue_lock.acquire()
-                if len(cls.request_queue) == 0:
-                    cls.request_queue_lock.release()
-                    time.sleep(0.01)
-                    continue
-                request = cls.request_queue.pop(0)
-                cls.request_queue_lock.release()
+                with cls.request_queue_lock:    # pylint: disable=E1129
+                    if len(cls.request_queue) == 0:
+                        time.sleep(0.01)
+                        continue
+                    request = cls.request_queue.pop(0)
 
                 transaction_id = request[1]
 
-                cls.handle_request(request)
+                cls.handle_request(request, exec_params)
 
-            except Exception as e:
-                OPENAI_OT_ProcessMessage.process(transaction_id, 'ERROR', {"exception": e}, None, sync=False)
-                OPENAI_OT_ProcessMessage.process(transaction_id, 'END_OF_TRANSACTION', None, None, sync=False)
+            except Exception as e:  # pylint: disable=W0703
+                # pylint: disable=E0601
+                OPENAI_OT_ProcessMessage.process(
+                    transaction_id, 'ERROR', {"exception": e}, None,
+                    exec_params)
+                OPENAI_OT_ProcessMessage.process(
+                    transaction_id, 'END_OF_TRANSACTION', None, None,
+                    exec_params)
 
 
-def sync_request(api_key, type, data, options, context, operator_instance):
-    request = [api_key, None, type, data, options]
-    RequestHandler.handle_request(request, sync=True, context=context, operator_instance=operator_instance)
+def sync_request(api_key, type_, data, options, context, operator_instance):
+    request = [api_key, None, type_, data, options]
+    exec_params = {
+        "sync": True,
+        "context": context,
+        "operator_instance": operator_instance,
+    }
+    RequestHandler.handle_request(request, exec_params)
 
 
-def async_request(api_key, type, data, options, transaction_data):
+def async_request(api_key, type_, data, options, transaction_data):
     transaction_id = uuid.uuid4()
-    OPENAI_OT_ProcessMessage.transaction_ids_lock.acquire()
-    OPENAI_OT_ProcessMessage.transaction_ids[transaction_id] = transaction_data
-    OPENAI_OT_ProcessMessage.transaction_ids_lock.release()
+    with OPENAI_OT_ProcessMessage.transaction_ids_lock:
+        OPENAI_OT_ProcessMessage.transaction_ids[transaction_id] = \
+            transaction_data
 
-    request = [api_key, transaction_id, type, data, options]
+    request = [api_key, transaction_id, type_, data, options]
     RequestHandler.add_request(request)

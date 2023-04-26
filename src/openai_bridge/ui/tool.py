@@ -35,7 +35,8 @@ class OPENAI_WST_ImageTool(bpy.types.WorkSpaceTool):
         ),
     )
 
-    def draw_settings(context, layout, tool):
+    # pylint: disable=E0213
+    def draw_settings(context, layout, _):
         user_prefs = context.preferences
         prefs = user_prefs.addons["openai_bridge"].preferences
 
@@ -59,7 +60,8 @@ class OPENAI_WST_AudioTool(bpy.types.WorkSpaceTool):
         ),
     )
 
-    def draw_settings(context, layout, tool):
+    # pylint: disable=E0213
+    def draw_settings(context, layout, _):
         user_prefs = context.preferences
         prefs = user_prefs.addons["openai_bridge"].preferences
 
@@ -83,6 +85,7 @@ class OPENAI_WST_ChatTool(bpy.types.WorkSpaceTool):
         ),
     )
 
+    # pylint: disable=E0213
     def draw_settings(context, layout, tool):
         props = tool.operator_properties(OPENAI_OT_Chat.bl_idname)
         user_prefs = context.preferences
@@ -117,6 +120,7 @@ class OPENAI_WST_CodeTool(bpy.types.WorkSpaceTool):
         ),
     )
 
+    # pylint: disable=E0213
     def draw_settings(context, layout, tool):
         props = tool.operator_properties(OPENAI_OT_GenerateCode.bl_idname)
         user_prefs = context.preferences
@@ -127,5 +131,6 @@ class OPENAI_WST_CodeTool(bpy.types.WorkSpaceTool):
         layout.separator()
 
         layout.prop(props, "num_conditions")
-        audio_props = tool.operator_properties(OPENAI_OT_GenerateCodeFromAudio.bl_idname)
+        audio_props = tool.operator_properties(
+            OPENAI_OT_GenerateCodeFromAudio.bl_idname)
         audio_props.num_conditions = props.num_conditions

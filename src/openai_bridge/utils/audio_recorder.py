@@ -3,31 +3,35 @@ import audioop
 import os
 import threading
 
-support_audio_recording = True
+SUPPORT_AUDIO_RECORDING = True
 try:
     import pyaudio
-except:
-    support_audio_recording = False
+# pylint: disable=W0702
+except:     # noqa
+    SUPPORT_AUDIO_RECORDING = False
+
+
+FORMAT_TO_PYAUDIO_FORMAT = {
+    'FLOAT32': pyaudio.paFloat32,
+    'INT32': pyaudio.paInt32,
+    'INT24': pyaudio.paInt24,
+    'INT16': pyaudio.paInt16,
+    'INT8': pyaudio.paInt8,
+    'UINT8': pyaudio.paUInt8,
+}
 
 
 class AudioRecorder:
 
-    def __init__(self, format='INT16', channels=2, rate=44100, chunk_size=1024, silence_threshold=100, silence_duration_limit=3):
-        if not support_audio_recording:
+    def __init__(
+            self, format_='INT16', channels=2, rate=44100, chunk_size=1024,
+            silence_threshold=100, silence_duration_limit=3):
+        if not SUPPORT_AUDIO_RECORDING:
             raise SystemError("Audio recording is not supported.")
-
-        FORMAT_TO_PYAUDIO_FORMAT = {
-            'FLOAT32': pyaudio.paFloat32,
-            'INT32': pyaudio.paInt32,
-            'INT24': pyaudio.paInt24,
-            'INT16': pyaudio.paInt16,
-            'INT8': pyaudio.paInt8,
-            'UINT8': pyaudio.paUInt8,
-        }
 
         self.audio = pyaudio.PyAudio()
         self.frames = []
-        self.format = FORMAT_TO_PYAUDIO_FORMAT[format]
+        self.format = FORMAT_TO_PYAUDIO_FORMAT[format_]
         self.channels = channels
         self.rate = rate
         self.chunk_size = chunk_size
@@ -40,10 +44,13 @@ class AudioRecorder:
         return self.recording_status
 
     def record_internal(self):
-        print(f"Open the audio stream... (Format: {self.format}, Channels: {self.channels}, Rate: {self.rate}, Chunk: {self.chunk_size})")
+        print(f"Open the audio stream... (Format: {self.format}, "
+              f"Channels: {self.channels}, Rate: {self.rate}, "
+              f"Chunk: {self.chunk_size})")
 
         stream = self.audio.open(format=self.format, channels=self.channels,
-                                 rate=self.rate, input=True, frames_per_buffer=self.chunk_size)
+                                 rate=self.rate, input=True,
+                                 frames_per_buffer=self.chunk_size)
 
         print("Wait recording...")
 
@@ -65,7 +72,10 @@ class AudioRecorder:
                     silence_counter = 0
 
                 # Stop recording if there's been enough silence
-                if silence_counter >= int(self.silence_duration_limit * self.rate / self.chunk_size):
+                limit = self.silence_duration_limit * self.rate / \
+                    self.chunk_size
+                limit = int(limit)
+                if silence_counter >= limit:
                     self.recording_status = 'FINISHED'
                     print("Recording stopped...")
 

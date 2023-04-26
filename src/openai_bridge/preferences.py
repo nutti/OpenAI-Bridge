@@ -5,14 +5,17 @@ from .utils import pip
 class OPENAI_OT_EnableAudioInput(bpy.types.Operator):
 
     bl_idname = "system.openai_enable_audio_input"
-    bl_description = "Enable to input from audio (This install 'pyaudio' library to Blender Python environment)"
+    bl_description = """Enable to input from audio (This install 'pyaudio'
+library to Blender Python environment)"""
     bl_label = "Enable Audio Input"
     bl_options = {'REGISTER'}
 
-    def execute(self, context):
+    def execute(self, _):
         ret_code = pip.install_package("pyaudio")
         if ret_code != 0:
-            self.report({'WARNING'}, "Failed to enable audio input. See details on the console.")
+            self.report(
+                {'WARNING'},
+                "Failed to enable audio input. See details on the console.")
             return {'CANCELLED'}
 
         return {'FINISHED'}
@@ -174,9 +177,11 @@ class OPENAI_Preferences(bpy.types.AddonPreferences):
             layout.prop(self, "https_proxy")
 
             row = layout.row()
-            op = row.operator(bpy.types.WM_OT_url_open.bl_idname, text="Register OpenAI API", icon='URL')
+            op = row.operator(bpy.types.WM_OT_url_open.bl_idname,
+                              text="Register OpenAI API", icon='URL')
             op.url = "https://openai.com/blog/openai-api"
-            op = row.operator(bpy.types.WM_OT_url_open.bl_idname, text="OpenAI API Pricing", icon='URL')
+            op = row.operator(bpy.types.WM_OT_url_open.bl_idname,
+                              text="OpenAI API Pricing", icon='URL')
             op.url = "https://openai.com/pricing"
 
             layout.separator()
@@ -193,61 +198,66 @@ class OPENAI_Preferences(bpy.types.AddonPreferences):
             if self.async_execution:
                 row.prop(self, "show_request_status", text="Show Status")
                 if self.show_request_status:
-                    row.prop(self, "request_status_location", expand=True, text="Location")
+                    row.prop(self, "request_status_location", expand=True,
+                             text="Location")
 
             layout.separator()
 
             layout.label(text="Usage Statistics:")
             box = layout.box()
 
+            stats_image_tool = sc.openai_usage_statistics_image_tool
             sp = box.split(factor=0.5)
             sub_box = sp.box()
             sub_box.label(text="[Image Tool]")
             col = sub_box.column()
             row = col.row()
             row.label(text="1024x1024")
-            row.label(text=f"{sc.openai_usage_statistics_image_tool.images_1024x1024} images")
+            row.label(text=f"{stats_image_tool.images_1024x1024} images")
             row = col.row()
             row.label(text="512x512")
-            row.label(text=f"{sc.openai_usage_statistics_image_tool.images_512x512} images")
+            row.label(text=f"{stats_image_tool.images_512x512} images")
             row = col.row()
             row.label(text="256x256")
-            row.label(text=f"{sc.openai_usage_statistics_image_tool.images_256x256} images")
+            row.label(text=f"{stats_image_tool.images_256x256} images")
 
+            stats_audio_tool = sc.openai_usage_statistics_audio_tool
             sub_box = sp.box()
             sub_box.label(text="[Audio Tool]")
             col = sub_box.column()
             row = col.row()
             row.label(text="whiper-1")
-            row.label(text=f"{sc.openai_usage_statistics_audio_tool.seconds_whisper} seconds")
+            row.label(text=f"{stats_audio_tool.seconds_whisper} seconds")
 
+            stats_chat_tool = sc.openai_usage_statistics_chat_tool
             sp = box.split(factor=0.5)
             sub_box = sp.box()
             sub_box.label(text="[Chat Tool]")
             col = sub_box.column()
             row = col.row()
             row.label(text="gpt-3.5-turbo")
-            row.label(text=f"{sc.openai_usage_statistics_chat_tool.tokens_gpt35_turbo} tokens")
+            row.label(text=f"{stats_chat_tool.tokens_gpt35_turbo} tokens")
             row = col.row()
             row.label(text="gpt-4")
-            row.label(text=f"{sc.openai_usage_statistics_chat_tool.tokens_gpt4_8k} tokens")
+            row.label(text=f"{stats_chat_tool.tokens_gpt4_8k} tokens")
             row = col.row()
             row.label(text="gpt-4-32k")
-            row.label(text=f"{sc.openai_usage_statistics_chat_tool.tokens_gpt4_32k} tokens")
+            row.label(text=f"{stats_chat_tool.tokens_gpt4_32k} tokens")
 
+            stats_code_tool = sc.openai_usage_statistics_code_tool
             sp = sp.split(factor=1.0)
             sub_box = sp.box()
             sub_box.label(text="[Code Tool]")
             col = sub_box.column()
             row = col.row()
             row.label(text="gpt-3.5-turbo")
-            row.label(text=f"{sc.openai_usage_statistics_code_tool.tokens_gpt35_turbo} tokens")
+            row.label(text=f"{stats_code_tool.tokens_gpt35_turbo} tokens")
             row = col.row()
             row.label(text="gpt-4")
-            row.label(text=f"{sc.openai_usage_statistics_code_tool.tokens_gpt4_8k} tokens")
+            row.label(text=f"{stats_code_tool.tokens_gpt4_8k} tokens")
             row = col.row()
             row.label(text="gpt-4-32k")
-            row.label(text=f"{sc.openai_usage_statistics_code_tool.tokens_gpt4_32k} tokens")
+            row.label(text=f"{stats_code_tool.tokens_gpt4_32k} tokens")
 
         elif self.category == 'IMAGE_TOOL':
             layout.label(text="No configuration")

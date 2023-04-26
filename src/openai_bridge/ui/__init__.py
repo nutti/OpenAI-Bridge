@@ -1,5 +1,6 @@
 if "bpy" in locals():
     import importlib
+    # pylint: disable=E0601
     importlib.reload(menu)
     importlib.reload(panel)
     importlib.reload(tool)
@@ -8,6 +9,7 @@ else:
     from . import panel
     from . import tool
 
+# pylint: disable=C0413
 import bpy
 
 
@@ -36,8 +38,10 @@ def register():
 
     bpy.utils.register_tool(tool.OPENAI_WST_ImageTool, separator=True)
     bpy.utils.register_tool(tool.OPENAI_WST_AudioTool, separator=True)
-    bpy.utils.register_tool(tool.OPENAI_WST_ChatTool, separator=True, group=True)
-    bpy.utils.register_tool(tool.OPENAI_WST_CodeTool, after={tool.OPENAI_WST_ChatTool.bl_idname})
+    bpy.utils.register_tool(tool.OPENAI_WST_ChatTool, separator=True,
+                            group=True)
+    bpy.utils.register_tool(tool.OPENAI_WST_CodeTool,
+                            after={tool.OPENAI_WST_ChatTool.bl_idname})
 
 
 def unregister():
@@ -61,7 +65,8 @@ def unregister():
     bpy.utils.unregister_class(panel.OPENAI_PT_AudioToolTranscribeSoundStrip)
     bpy.utils.unregister_class(panel.OPENAI_PT_AudioToolSequenceEditor)
     bpy.utils.unregister_class(panel.OPENAI_PT_ImageToolGeneratedImages)
-    bpy.utils.unregister_class(panel.OPENAI_PT_ImageToolGenereateVariationImage)
+    bpy.utils.unregister_class(
+        panel.OPENAI_PT_ImageToolGenereateVariationImage)
     bpy.utils.unregister_class(panel.OPENAI_PT_ImageToolEditImage)
     bpy.utils.unregister_class(panel.OPENAI_PT_ImageToolGenerateImage)
     bpy.utils.unregister_class(panel.OPENAI_PT_ImageTool)

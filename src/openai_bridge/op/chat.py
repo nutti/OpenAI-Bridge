@@ -1,6 +1,6 @@
-import bpy
 import os
 import glob
+import bpy
 
 from ..utils.common import (
     CHAT_DATA_DIR,
@@ -26,7 +26,8 @@ class OPENAI_OT_Ask(bpy.types.Operator):
     def poll(cls, context):
         if hasattr(context, "button_operator"):
             return True
-        if hasattr(context, "button_prop") and hasattr(context, "button_pointer"):
+        if hasattr(context, "button_prop") and \
+                hasattr(context, "button_pointer"):
             return True
 
         return False
@@ -38,10 +39,13 @@ class OPENAI_OT_Ask(bpy.types.Operator):
 
         if hasattr(context, "button_operator"):
             kind = 'OPERATOR'
-        elif hasattr(context, "button_prop") and hasattr(context, "button_pointer"):
+        elif hasattr(context, "button_prop") and \
+                hasattr(context, "button_pointer"):
             kind = 'PROPERTY'
         else:
-            self.report({'WARNING'}, "The execution condition does not meet the requirement.")
+            self.report(
+                {'WARNING'},
+                "The execution condition does not meet the requirement.")
             return {'FINISHED'}
 
         request = {
@@ -85,7 +89,8 @@ class OPENAI_OT_Ask(bpy.types.Operator):
 
             request["messages"].append({
                 "role": "user",
-                "content": f"Explain about the property '{prop_name}' of class '{class_name}'"
+                "content": f"Explain about the property '{prop_name}' of "
+                           f"class '{class_name}'"
             })
 
             options["topic"] = f"Ask Property '{prop_name}' of '{class_name}'"
@@ -207,9 +212,11 @@ class OPENAI_OT_CopyChatLog(bpy.types.Operator):
         text_to_copy = ""
         if self.part == -1:
             for part in range(chat_file.num_parts()):
-                text_to_copy += self.create_text_to_copy_for_part(part, chat_file)
+                text_to_copy += self.create_text_to_copy_for_part(
+                    part, chat_file)
         else:
-            text_to_copy = self.create_text_to_copy_for_part(self.part, chat_file)
+            text_to_copy = self.create_text_to_copy_for_part(
+                self.part, chat_file)
 
         if self.target == 'CLIPBOARD':
             context.window_manager.clipboard = text_to_copy
@@ -218,7 +225,8 @@ class OPENAI_OT_CopyChatLog(bpy.types.Operator):
             text_data.clear()
             text_data.write(text_to_copy)
             # Focus on the chat in Text Editor.
-            _, _, space = get_area_region_space(context, 'TEXT_EDITOR', 'WINDOW', 'TEXT_EDITOR')
+            _, _, space = get_area_region_space(
+                context, 'TEXT_EDITOR', 'WINDOW', 'TEXT_EDITOR')
             if space is not None:
                 space.text = text_data
 
@@ -262,7 +270,8 @@ class OPENAI_OT_CopyChatCode(bpy.types.Operator):
         chat_file.load_from_topic(self.topic)
 
         response_data = chat_file.get_response_data(self.part)
-        code_to_copy = get_code_from_response_data(response_data, self.code_index)
+        code_to_copy = get_code_from_response_data(
+            response_data, self.code_index)
         if code_to_copy is None:
             self.report({'WARNING'}, "Failed to find the target code")
             return {'CANCELLED'}
@@ -270,11 +279,13 @@ class OPENAI_OT_CopyChatCode(bpy.types.Operator):
         if self.target == 'CLIPBOARD':
             context.window_manager.clipboard = code_to_copy
         elif self.target == 'TEXT':
-            text_data = bpy.data.texts.new(f"{self.topic}-{self.part}-{self.code_index}")
+            text_data = bpy.data.texts.new(
+                f"{self.topic}-{self.part}-{self.code_index}")
             text_data.clear()
             text_data.write(code_to_copy)
             # Focus on the chat in Text Editor.
-            _, _, space = get_area_region_space(context, 'TEXT_EDITOR', 'WINDOW', 'TEXT_EDITOR')
+            _, _, space = get_area_region_space(
+                context, 'TEXT_EDITOR', 'WINDOW', 'TEXT_EDITOR')
             if space is not None:
                 space.text = text_data
 
@@ -304,20 +315,22 @@ class OPENAI_OT_RunChatCode(bpy.types.Operator):
         min=0,
     )
 
-    def execute(self, context):
+    def execute(self, _):
         chat_file = ChatTextFile()
         chat_file.load_from_topic(self.topic)
 
         response_data = chat_file.get_response_data(self.part)
-        code_to_execute = get_code_from_response_data(response_data, self.code_index)
+        code_to_execute = get_code_from_response_data(
+            response_data, self.code_index)
         if code_to_execute is None:
             self.report({'WARNING'}, "Failed to find the target code")
             return {'CANCELLED'}
 
-        error_key = error_storage.get_error_key('CHAT', self.topic, self.part, self.code_index)
+        error_key = error_storage.get_error_key(
+            'CHAT', self.topic, self.part, self.code_index)
         try:
-            exec(code_to_execute)
-        except Exception as e:
+            exec(code_to_execute)   # pylint: disable=W0122
+        except Exception as e:  # pylint: disable=W0703
             error_message = f"Error: {e}"
             error_storage.store_error(error_key, error_message)
             return {'CANCELLED'}
@@ -338,7 +351,7 @@ class OPENAI_OT_RemoveChat(bpy.types.Operator):
         name="Code",
     )
 
-    def execute(self, context):
+    def execute(self, _):
         ChatTextFile.remove(self.topic)
 
         return {'FINISHED'}
@@ -368,11 +381,14 @@ class OPENAI_OT_CopyChatCodeError(bpy.types.Operator):
     )
 
     def execute(self, context):
-        error_key = error_storage.get_error_key('CHAT', self.topic, self.part, self.code_index)
+        error_key = error_storage.get_error_key(
+            'CHAT', self.topic, self.part, self.code_index)
 
         error_message = error_storage.get_error(error_key)
         if error_message is None:
-            self.report({'WARNING'}, f"Failed to get error message (Error Key: {error_key})")
+            self.report(
+                {'WARNING'},
+                f"Failed to get error message (Error Key: {error_key})")
             return {'CANCELLED'}
 
         context.window_manager.clipboard = error_message
@@ -417,7 +433,7 @@ class OPENAI_OT_Chat(bpy.types.Operator):
         default="Blender Chat"
     )
 
-    def get_topics(self, context):
+    def get_topics(self, _):
         topic_dir = f"{CHAT_DATA_DIR}/topics"
         if not os.path.isdir(topic_dir):
             return []
@@ -434,7 +450,7 @@ class OPENAI_OT_Chat(bpy.types.Operator):
         items=get_topics,
     )
 
-    def draw(self, context):
+    def draw(self, _):
         layout = self.layout
 
         layout.prop(self, "new_topic")
@@ -454,14 +470,14 @@ class OPENAI_OT_Chat(bpy.types.Operator):
             sp = sp.split(factor=1.0)
             sp.prop(condition, "condition", text=f"{i+1}")
 
-    def invoke(self, context, event):
+    def invoke(self, context, _):
         wm = context.window_manager
         user_prefs = context.preferences
         prefs = user_prefs.addons["openai_bridge"].preferences
 
         self.conditions.clear()
 
-        for i in range(self.num_conditions):
+        for _ in range(self.num_conditions):
             self.conditions.add()
 
         return wm.invoke_props_dialog(self, width=prefs.popup_menu_width)

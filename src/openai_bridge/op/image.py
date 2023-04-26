@@ -1,6 +1,6 @@
-import bpy
 import os
 import uuid
+import bpy
 
 from ..utils.threading import (
     sync_request,
@@ -65,7 +65,7 @@ class OPENAI_OT_EditImage(bpy.types.Operator):
         if sc.openai_edit_image_mask_image is not None:
             self.mask_image_name = sc.openai_edit_image_mask_image.name
 
-    def invoke(self, context, event):
+    def invoke(self, context, _):
         wm = context.window_manager
         user_prefs = context.preferences
         prefs = user_prefs.addons["openai_bridge"].preferences
@@ -97,8 +97,14 @@ class OPENAI_OT_EditImage(bpy.types.Operator):
         mask_image.save(filepath=mask_image_filepath)
 
         request = {
-            "image": (os.path.basename(base_image_filepath), open(base_image_filepath, "rb")),
-            "mask": (os.path.basename(mask_image_filepath), open(mask_image_filepath, "rb")),
+            "image": (
+                os.path.basename(base_image_filepath),
+                open(base_image_filepath, "rb")     # pylint: disable=R1732
+            ),
+            "mask": (
+                os.path.basename(mask_image_filepath),
+                open(mask_image_filepath, "rb")     # pylint: disable=R1732
+            ),
             "prompt": (None, self.prompt),
             "n": (None, self.num_images),
             "size": (None, self.image_size),
@@ -114,13 +120,15 @@ class OPENAI_OT_EditImage(bpy.types.Operator):
         }
 
         if not prefs.async_execution:
-            sync_request(api_key, 'EDIT_IMAGE', request, options, context, self)
+            sync_request(api_key, 'EDIT_IMAGE', request, options, context,
+                         self)
         else:
             transaction_data = {
                 "type": 'EDIT_IMAGE',
                 "title": self.base_image_name[0:32],
             }
-            async_request(api_key, 'EDIT_IMAGE', request, options, transaction_data)
+            async_request(api_key, 'EDIT_IMAGE', request, options,
+                          transaction_data)
             # Run Message Processing Timer if it has not launched yet.
             bpy.ops.system.openai_process_message()
 
@@ -135,7 +143,7 @@ class OPENAI_OT_LoadImage(bpy.types.Operator):
     bl_label = "Load Image"
     bl_options = {'REGISTER', 'UNDO'}
 
-    image_filepath : bpy.props.StringProperty(
+    image_filepath: bpy.props.StringProperty(
         name="Image Filepath",
     )
 
@@ -144,7 +152,8 @@ class OPENAI_OT_LoadImage(bpy.types.Operator):
         image = bpy.data.images.load(filepath=self.image_filepath)
 
         # Focus on the generated image in Image Editor.
-        _, _, space = get_area_region_space(context, 'IMAGE_EDITOR', 'WINDOW', 'IMAGE_EDITOR')
+        _, _, space = get_area_region_space(
+            context, 'IMAGE_EDITOR', 'WINDOW', 'IMAGE_EDITOR')
         if space is not None:
             space.image = image
 
@@ -158,11 +167,11 @@ class OPENAI_OT_RemoveImage(bpy.types.Operator):
     bl_label = "Remove Image"
     bl_options = {'REGISTER', 'UNDO'}
 
-    image_filepath : bpy.props.StringProperty(
+    image_filepath: bpy.props.StringProperty(
         name="Image Filepath",
     )
 
-    def execute(self, context):
+    def execute(self, _):
         os.remove(self.image_filepath)
 
         # TODO: Add the option to remove image data block.
@@ -206,7 +215,7 @@ class OPENAI_OT_GeneateImage(bpy.types.Operator):
         description="Name of image data block"
     )
 
-    def draw(self, context):
+    def draw(self, _):
         layout = self.layout
 
         layout.prop(self, "prompt")
@@ -228,7 +237,7 @@ class OPENAI_OT_GeneateImage(bpy.types.Operator):
         r.prop(self, "image_name", text="")
         r.enabled = not self.auto_image_name
 
-    def invoke(self, context, event):
+    def invoke(self, context, _):
         wm = context.window_manager
         user_prefs = context.preferences
         prefs = user_prefs.addons["openai_bridge"].preferences
@@ -253,13 +262,15 @@ class OPENAI_OT_GeneateImage(bpy.types.Operator):
         }
 
         if not prefs.async_execution:
-            sync_request(api_key, 'GENERATE_IMAGE', request, options, context, self)
+            sync_request(
+                api_key, 'GENERATE_IMAGE', request, options, context, self)
         else:
             transaction_data = {
                 "type": 'IMAGE',
                 "title": options["image_name"][0:32],
             }
-            async_request(api_key, 'GENERATE_IMAGE', request, options, transaction_data)
+            async_request(
+                api_key, 'GENERATE_IMAGE', request, options, transaction_data)
             # Run Message Processing Timer if it has not launched yet.
             bpy.ops.system.openai_process_message()
 
@@ -295,9 +306,8 @@ class OPENAI_OT_GenerateVariationImage(bpy.types.Operator):
         description="Name of file to be used for the base image",
     )
 
-    def draw(self, context):
+    def draw(self, _):
         layout = self.layout
-        sc = context.scene
 
         layout.prop(self, "prompt")
 
@@ -309,7 +319,7 @@ class OPENAI_OT_GenerateVariationImage(bpy.types.Operator):
         col.label(text="Num")
         col.prop(self, "num_images", text="")
 
-    def invoke(self, context, event):
+    def invoke(self, context, _):
         wm = context.window_manager
         user_prefs = context.preferences
         prefs = user_prefs.addons["openai_bridge"].preferences
@@ -338,7 +348,10 @@ class OPENAI_OT_GenerateVariationImage(bpy.types.Operator):
         base_image.save(filepath=base_image_filepath)
 
         request = {
-            "image": (os.path.basename(base_image_filepath), open(base_image_filepath, "rb")),
+            "image": (
+                os.path.basename(base_image_filepath),
+                open(base_image_filepath, "rb")     # pylint: disable=R1732
+            ),
             "n": (None, self.num_images),
             "size": (None, self.image_size),
             "response_format": (None, "url"),
@@ -351,13 +364,15 @@ class OPENAI_OT_GenerateVariationImage(bpy.types.Operator):
         }
 
         if not prefs.async_execution:
-            sync_request(api_key, 'GENERATE_VARIATION_IMAGE', request, options, context, self)
+            sync_request(api_key, 'GENERATE_VARIATION_IMAGE', request, options,
+                         context, self)
         else:
             transaction_data = {
                 "type": 'IMAGE',
                 "title": self.base_image_name[0:32],
             }
-            async_request(api_key, 'GENERATE_VARIATION_IMAGE', request, options, transaction_data)
+            async_request(api_key, 'GENERATE_VARIATION_IMAGE', request,
+                          options, transaction_data)
             # Run Message Processing Timer if it has not launched yet.
             bpy.ops.system.openai_process_message()
 

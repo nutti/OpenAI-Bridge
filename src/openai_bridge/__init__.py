@@ -14,6 +14,7 @@ bl_info = {
 
 if "bpy" in locals():
     import importlib
+    # pylint: disable=E0601
     importlib.reload(op)
     importlib.reload(properties)
     importlib.reload(preferences)
@@ -27,14 +28,20 @@ else:
     from . import ui
     from . import utils
 
+# pylint: disable=C0413
+import bpy
+
 
 def menu_func(self, context):
     sc = context.scene
     layout = self.layout
+    icon_collection = sc.openai_icon_collection["openai_base"]
 
     layout.separator()
-    layout.operator(op.chat.OPENAI_OT_Ask.bl_idname, icon_value=sc.openai_icon_collection["openai_base"].icon_id)
-    layout.operator(op.code.OPENAI_OT_GenerateCodeExample.bl_idname, icon_value=sc.openai_icon_collection["openai_base"].icon_id)
+    layout.operator(op.chat.OPENAI_OT_Ask.bl_idname,
+                    icon_value=icon_collection.icon_id)
+    layout.operator(op.code.OPENAI_OT_GenerateCodeExample.bl_idname,
+                    icon_value=icon_collection.icon_id)
 
 
 def register():
