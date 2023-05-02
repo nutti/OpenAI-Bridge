@@ -1,5 +1,28 @@
 import bpy
 from .utils import pip
+from .utils.audio_recorder import support_audio_recording
+from .utils.common import (
+    draw_data_on_ui_layout,
+    check_api_connection,
+    api_connection_enabled,
+)
+
+
+class OPENAI_OT_CheckAPIConnection(bpy.types.Operator):
+
+    bl_idname = "system.openai_check_api_connection"
+    bl_description = "Check connection to OpenAI API"
+    bl_label = "Check API Connection"
+    bl_options = {'REGISTER'}
+
+    def execute(self, context):
+        user_prefs = context.preferences
+        prefs = user_prefs.addons["openai_bridge"].preferences
+
+        prefs.connection_status = check_api_connection(
+            prefs.api_key, prefs.http_proxy, prefs.https_proxy)
+
+        return {'FINISHED'}
 
 
 class OPENAI_OT_EnableAudioInput(bpy.types.Operator):
@@ -18,6 +41,8 @@ library to Blender Python environment)"""
                 "Failed to enable audio input. See details on the console.")
             return {'CANCELLED'}
 
+        bpy.ops.script.reload()
+
         return {'FINISHED'}
 
 
@@ -26,6 +51,7 @@ class OPENAI_Preferences(bpy.types.AddonPreferences):
 
     category: bpy.props.EnumProperty(
         name="Category",
+        description="Configuration Category",
         items=[
             ('SYSTEM', "System", "System configuration"),
             ('IMAGE_TOOL', "Image Tool", "Image tool configuration"),
@@ -33,20 +59,32 @@ class OPENAI_Preferences(bpy.types.AddonPreferences):
             ('CHAT_TOOL', "Chat Tool", "Chat tool configuration"),
             ('CODE_TOOL', "Code Tool", "Code tool configuration"),
         ],
+        default='SYSTEM',
     )
 
     api_key: bpy.props.StringProperty(
         name="API Key",
+        description="OpenAI API key",
         subtype='PASSWORD',
     )
     http_proxy: bpy.props.StringProperty(
         name="HTTP Proxy",
+        description="""Proxy configuration for HTTP
+(ex: http://user:password@hostname:port)""",
     )
     https_proxy: bpy.props.StringProperty(
         name="HTTPS Proxy",
+        description="""Proxy configuration for HTTPS
+(ex: http://user:password@hostname:port)""",
     )
+    connection_status: bpy.props.StringProperty(
+        name="Connection Status",
+        description="Connection status",
+    )
+
     popup_menu_width: bpy.props.IntProperty(
         name="Popup Menu Width",
+        description="Width of the popup menu from workspace tools",
         default=300,
         min=100,
         max=1000,
@@ -87,8 +125,9 @@ class OPENAI_Preferences(bpy.types.AddonPreferences):
         ],
         default="gpt-3.5-turbo",
     )
-    chat_log_wrap_width: bpy.props.FloatProperty(
+    chat_tool_log_wrap_width: bpy.props.FloatProperty(
         name="Wrap Width",
+        description="Wrap width of the chat tool log",
         default=0.11,
         min=0.01,
         max=1.0,
@@ -107,6 +146,7 @@ class OPENAI_Preferences(bpy.types.AddonPreferences):
     )
     code_tool_audio_language: bpy.props.EnumProperty(
         name="Code Tool Audio Language",
+        description="Language for the audio input in the code tool",
         items=[
             ('en', "English", "English"),
             ('ja', "Japanese", "Japanese"),
@@ -115,7 +155,7 @@ class OPENAI_Preferences(bpy.types.AddonPreferences):
         default='en',
     )
 
-    audio_record_format: bpy.props.EnumProperty(
+    code_tool_audio_record_format: bpy.props.EnumProperty(
         name="Format",
         description="Formats for the audio recording",
         items=[
@@ -128,35 +168,35 @@ class OPENAI_Preferences(bpy.types.AddonPreferences):
         ],
         default='INT16',
     )
-    audio_record_channels: bpy.props.IntProperty(
+    code_tool_audio_record_channels: bpy.props.IntProperty(
         name="Channels",
         description="Channels for the audio recording",
         default=2,
         min=1,
         max=2,
     )
-    audio_record_rate: bpy.props.IntProperty(
+    code_tool_audio_record_rate: bpy.props.IntProperty(
         name="Rate",
         description="Sampling rate for the audio recording",
         default=44100,
         min=44100,
         max=44100,
     )
-    audio_record_chunk_size: bpy.props.IntProperty(
+    code_tool_audio_record_chunk_size: bpy.props.IntProperty(
         name="Chunk Size",
         description="Frames per buffer",
         default=1024,
         min=512,
         max=4096,
     )
-    audio_record_silence_threshold: bpy.props.IntProperty(
+    code_tool_audio_record_silence_threshold: bpy.props.IntProperty(
         name="Silence Threshold",
         description="Threshold to stop the audio recording",
         default=100,
         min=0,
         max=65536,
     )
-    audio_record_silence_duration_limit: bpy.props.IntProperty(
+    code_tool_audio_record_silence_duration_limit: bpy.props.IntProperty(
         name="Silence Duration Limit",
         description="The seconds to stop the audio recording",
         default=2,
@@ -172,7 +212,18 @@ class OPENAI_Preferences(bpy.types.AddonPreferences):
         row.prop(self, "category", expand=True)
 
         if self.category == 'SYSTEM':
-            layout.prop(self, "api_key")
+            row = layout.row(align=True)
+            row.prop(self, "api_key")
+            col = row.column()
+            col.alignment = 'CENTER'
+            col.operator(OPENAI_OT_CheckAPIConnection.bl_idname)
+            sp = layout.split(factor=0.03)
+            sp.column()   # for spacer.
+            sp = sp.split(factor=1.0).box()
+            sp.label(text="[Connection Status]")
+            draw_data_on_ui_layout(
+                context, sp, [self.connection_status], 0.08,
+                alert=not api_connection_enabled(context))
             layout.prop(self, "http_proxy")
             layout.prop(self, "https_proxy")
 
@@ -274,27 +325,38 @@ class OPENAI_Preferences(bpy.types.AddonPreferences):
             col.separator()
             row = col.row()
             row.alignment = 'LEFT'
-            row.prop(self, "chat_log_wrap_width")
+            row.prop(self, "chat_tool_log_wrap_width")
         elif self.category == 'CODE_TOOL':
             col = layout.column()
             row = col.row()
             row.alignment = 'LEFT'
             row.prop(self, "code_tool_model")
-            col.separator()
-            col.label(text="Audio:")
-            row = col.row()
-            row.alignment = 'LEFT'
-            row.prop(self, "code_tool_audio_language", text="Language")
 
             layout.separator()
 
-            layout.label(text="Recording Configuration:")
-            sp = layout.split(factor=0.35)
-            col = sp.column()
-            col.operator(OPENAI_OT_EnableAudioInput.bl_idname)
-            col.prop(self, "audio_record_format")
-            col.prop(self, "audio_record_channels")
-            col.prop(self, "audio_record_rate")
-            col.prop(self, "audio_record_chunk_size")
-            col.prop(self, "audio_record_silence_threshold")
-            col.prop(self, "audio_record_silence_duration_limit")
+            if support_audio_recording():
+                layout.label(text="Audio Input Configuration:")
+
+                sp_outer = layout.split(factor=0.05)
+                sp_outer.column()   # for spacer.
+                sp_outer = sp_outer.split(factor=0.5)
+                col = sp_outer.column()
+                col.alignment = 'LEFT'
+                col.prop(self, "code_tool_audio_language", text="Language")
+
+                layout.label(text="Recording Configuration:")
+
+                sp_outer = layout.split(factor=0.05)
+                sp_outer.column()   # for spacer.
+                sp_outer = sp_outer.split(factor=0.5)
+                col = sp_outer.column()
+                col.prop(self, "code_tool_audio_record_format")
+                col.prop(self, "code_tool_audio_record_channels")
+                col.prop(self, "code_tool_audio_record_rate")
+                col.prop(self, "code_tool_audio_record_chunk_size")
+                col.prop(self, "code_tool_audio_record_silence_threshold")
+                col.prop(self, "code_tool_audio_record_silence_duration_limit")
+            else:
+                sp = layout.split(factor=0.5)
+                col = sp.column()
+                col.operator(OPENAI_OT_EnableAudioInput.bl_idname)

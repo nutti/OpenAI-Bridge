@@ -7,6 +7,7 @@ from ..utils.threading import (
     sync_request,
     async_request,
 )
+from ..utils.common import api_connection_enabled
 
 
 class OPENAI_OT_TranscribeSoundStrip(bpy.types.Operator):
@@ -18,15 +19,19 @@ class OPENAI_OT_TranscribeSoundStrip(bpy.types.Operator):
 
     prompt: bpy.props.StringProperty(
         name="Prompt",
+        description="Optional text to specify the style",
     )
     temperature: bpy.props.FloatProperty(
         name="Temperature",
+        description="""Higher value makes the output more random.
+Lower value makes the output more deterministic.""",
         default=0.0,
         min=0.0,
         max=1.0,
     )
     language: bpy.props.EnumProperty(
         name="Language",
+        description="Language of the input audio",
         items=[
             ('en', "English", "English"),
             ('ja', "Japanese", "Japanese"),
@@ -41,10 +46,11 @@ class OPENAI_OT_TranscribeSoundStrip(bpy.types.Operator):
             ('TEXT_STRIP', "Text Strip", "Text Strip"),
         ],
     )
-    source_sound_strip_name: bpy.props.StringProperty(
+    sound_strip_name: bpy.props.StringProperty(
         name="Sound Strip Name",
+        description="Name of the sound strip to transcribe",
     )
-    target_sequence_channel: bpy.props.IntProperty(
+    sequence_channel: bpy.props.IntProperty(
         name="Target Sequence Channel",
         description="""Sequence channel where the transcription result to be
 created""",
@@ -52,6 +58,12 @@ created""",
         max=128,
         default=1,
     )
+
+    @classmethod
+    def poll(cls, context):
+        if not api_connection_enabled(context):
+            return False
+        return True
 
     def draw(self, context):
         layout = self.layout
@@ -89,8 +101,7 @@ created""",
         if context.scene.sequence_editor.active_strip.type != 'SOUND':
             return {'CANCELLED'}
 
-        self.source_sound_strip_name = \
-            context.scene.sequence_editor.active_strip.name
+        self.sound_strip_name = context.scene.sequence_editor.active_strip.name
         self.target = 'TEXT_STRIP'
 
         return wm.invoke_props_dialog(self, width=prefs.popup_menu_width)
@@ -102,7 +113,7 @@ created""",
         api_key = prefs.api_key
 
         sequences = context.scene.sequence_editor.sequences
-        sequence = sequences[self.source_sound_strip_name]
+        sequence = sequences[self.sound_strip_name]
         filepath = sequence.sound.filepath
 
         request = {
@@ -117,7 +128,7 @@ created""",
         strip_end = sequence.frame_final_start + sequence.frame_final_duration
         options = {
             "target": self.target,
-            "target_sequence_channel": self.target_sequence_channel,
+            "target_sequence_channel": self.sequence_channel,
             "strip_start": sequence.frame_final_start,
             "strip_end": strip_end,
             "fps": sc.render.fps / sc.render.fps_base,
@@ -171,26 +182,41 @@ class OPENAI_OT_TranscribeAudioFile(bpy.types.Operator):
 
     prompt: bpy.props.StringProperty(
         name="Prompt",
+        description="Optional text to specify the style",
     )
     temperature: bpy.props.FloatProperty(
         name="Temperature",
+        description="""Higher value makes the output more random.
+Lower value makes the output more deterministic.""",
         default=0.0,
         min=0.0,
         max=1.0,
     )
     language: bpy.props.EnumProperty(
         name="Language",
+        description="Language of the input audio",
         items=[
-            ('en', "English", "English"),       # TODO: Add more languages
+            ('en', "English", "English"),
+            ('ja', "Japanese", "Japanese"),
+            # TODO: Add more languages
         ],
         default='en',
     )
     audio_filepath: bpy.props.StringProperty(
-        name="Audio File Path",
+        name="Audio Filepath",
+        description="Filepath of the audio file to transcribe",
     )
-    target_text_name: bpy.props.StringProperty(
-        name="Target Text Name"
+    target_text_block_name: bpy.props.StringProperty(
+        name="Target Text Block Name",
+        description="""Name of target text block to where the transcript is
+saved""",
     )
+
+    @classmethod
+    def poll(cls, context):
+        if not api_connection_enabled(context):
+            return False
+        return True
 
     def execute(self, context):
         user_prefs = context.preferences
@@ -209,7 +235,7 @@ class OPENAI_OT_TranscribeAudioFile(bpy.types.Operator):
 
         options = {
             "target": 'TEXT_EDITOR',
-            "target_text_name": self.target_text_name,
+            "target_text_name": self.target_text_block_name,
             "http_proxy": prefs.http_proxy,
             "https_proxy": prefs.https_proxy,
         }

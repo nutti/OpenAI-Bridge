@@ -3,6 +3,7 @@ import audioop
 import os
 import threading
 
+
 SUPPORT_AUDIO_RECORDING = True
 try:
     import pyaudio
@@ -10,15 +11,19 @@ try:
 except:     # noqa
     SUPPORT_AUDIO_RECORDING = False
 
+if SUPPORT_AUDIO_RECORDING:
+    FORMAT_TO_PYAUDIO_FORMAT = {
+        'FLOAT32': pyaudio.paFloat32,
+        'INT32': pyaudio.paInt32,
+        'INT24': pyaudio.paInt24,
+        'INT16': pyaudio.paInt16,
+        'INT8': pyaudio.paInt8,
+        'UINT8': pyaudio.paUInt8,
+    }
 
-FORMAT_TO_PYAUDIO_FORMAT = {
-    'FLOAT32': pyaudio.paFloat32,
-    'INT32': pyaudio.paInt32,
-    'INT24': pyaudio.paInt24,
-    'INT16': pyaudio.paInt16,
-    'INT8': pyaudio.paInt8,
-    'UINT8': pyaudio.paUInt8,
-}
+
+def support_audio_recording():
+    return SUPPORT_AUDIO_RECORDING
 
 
 class AudioRecorder:

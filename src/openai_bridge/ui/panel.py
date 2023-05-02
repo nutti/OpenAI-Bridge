@@ -13,6 +13,7 @@ from ..utils.common import (
     draw_data_on_ui_layout,
 )
 from ..utils import error_storage
+from ..utils.common import api_connection_enabled
 
 
 class OPENAI_PT_ImageTool(bpy.types.Panel):
@@ -30,7 +31,15 @@ class OPENAI_PT_ImageTool(bpy.types.Panel):
         layout.label(text="", icon_value=icon_collection.icon_id)
 
     def draw(self, context):
-        pass
+        layout = self.layout
+
+        if not api_connection_enabled(context):
+            col = layout.column(align=True)
+            col.alert = True
+            col.label(icon='ERROR')
+            col.label(text="API connection is disabled.")
+            col.label(text="This makes some features disabled.")
+            col.label(text="Check Preferences for the detail.")
 
 
 class OPENAI_PT_ImageToolGenerateImage(bpy.types.Panel):
@@ -180,7 +189,7 @@ class OPENAI_PT_ImageToolGeneratedImages(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         sc = context.scene
-        props = sc.openai_image_tool_generate_image_props
+        props = sc.openai_image_tool_generated_images_props
 
         row = layout.row(align=True)
         row.template_icon_view(props, "edit_target", show_labels=True)
@@ -208,7 +217,15 @@ class OPENAI_PT_AudioToolSequenceEditor(bpy.types.Panel):
         layout.label(text="", icon_value=icon_collection.icon_id)
 
     def draw(self, context):
-        pass
+        layout = self.layout
+
+        if not api_connection_enabled(context):
+            col = layout.column(align=True)
+            col.alert = True
+            col.label(icon='ERROR')
+            col.label(text="API connection is disabled.")
+            col.label(text="This makes some features disabled.")
+            col.label(text="Check Preferences for the detail.")
 
 
 class OPENAI_PT_AudioToolTranscribeSoundStrip(bpy.types.Panel):
@@ -234,7 +251,7 @@ class OPENAI_PT_AudioToolTranscribeSoundStrip(bpy.types.Panel):
         row = layout.row(align=True)
         row.operator_context = 'EXEC_DEFAULT'
         col = row.column(align=True)
-        col.prop(props, "transcribe_target", text="")
+        col.prop(props, "sound_strip", text="")
         col.enabled = not props.selected_sound_strip
         ops = row.operator(audio.OPENAI_OT_TranscribeSoundStrip.bl_idname,
                            icon='PLAY', text="")
@@ -315,18 +332,18 @@ class OPENAI_PT_AudioToolTranscribeAudioFile(bpy.types.Panel):
         sc = context.scene
         props = sc.openai_audio_tool_transcribe_audio_file_props
 
-        layout.prop(props, "source", expand=True)
+        layout.prop(props, "input_type", expand=True)
 
         layout.separator()
 
         row = layout.row(align=True)
-        if props.source == 'AUDIO_FILE':
+        if props.input_type == 'AUDIO_FILE':
             row.operator(audio.OPENAI_OT_OpenAudioFile.bl_idname, text="",
                          icon='FILEBROWSER')
-            row.prop(props, "source_audio_filepath", text="")
-        elif props.source == 'SOUND_DATA_BLOCK':
+            row.prop(props, "audio_filepath", text="")
+        elif props.input_type == 'SOUND_DATA_BLOCK':
             row = layout.row(align=True)
-            row.prop(sc, "openai_audio_tool_source_sound_data_block", text="")
+            row.prop(sc, "openai_audio_tool_sound_data_block", text="")
         col = row.column(align=True)
         col.operator_context = 'EXEC_DEFAULT'
         op = col.operator(audio.OPENAI_OT_TranscribeAudioFile.bl_idname,
@@ -334,20 +351,21 @@ class OPENAI_PT_AudioToolTranscribeAudioFile(bpy.types.Panel):
         op.prompt = props.prompt
         op.temperature = props.temperature
         op.language = props.language
-        if props.source == 'AUDIO_FILE':
-            op.audio_filepath = props.source_audio_filepath
-        elif props.source == 'SOUND_DATA_BLOCK':
-            sound_data_block = sc.openai_audio_tool_source_sound_data_block
+        if props.input_type == 'AUDIO_FILE':
+            op.audio_filepath = props.audio_filepath
+        elif props.input_type == 'SOUND_DATA_BLOCK':
+            sound_data_block = sc.openai_audio_tool_sound_data_block
             if sound_data_block is not None:
                 op.audio_filepath = sound_data_block.filepath
         if props.current_text:
             if context.space_data.text is not None:
-                op.target_text_name = context.space_data.text.name
+                op.target_text_block_name = context.space_data.text.name
             else:
-                op.target_text_name = "Untitled"
+                op.target_text_block_name = "Untitled"
         else:
-            if sc.openai_audio_tool_target_text is not None:
-                op.target_text_name = sc.openai_audio_tool_target_text.name
+            target_text = sc.openai_audio_tool_target_text
+            if target_text is not None:
+                op.target_text_block_name = target_text.name
 
         layout.separator()
 
@@ -369,7 +387,7 @@ class OPENAI_PT_AudioToolTranscribeAudioFile(bpy.types.Panel):
         row.label(text="Result:")
         row.prop(props, "current_text", text="Current Text")
         r = col.row(align=True)
-        r.prop(sc, "openai_audio_tool_target_text", text="")
+        r.prop(sc, "openai_audio_tool_target_text_block", text="")
         r.enabled = not props.current_text
 
 
@@ -389,6 +407,15 @@ class OPENAI_PT_ChatTool(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
+
+        if not api_connection_enabled(context):
+            col = layout.column(align=True)
+            col.alert = True
+            col.label(icon='ERROR')
+            col.label(text="API connection is disabled.")
+            col.label(text="This makes some features disabled.")
+            col.label(text="Check Preferences for the detail.")
+
         sc = context.scene
         props = sc.openai_chat_tool_props
 
@@ -404,14 +431,14 @@ class OPENAI_PT_ChatTool(bpy.types.Panel):
             op.topic = props.topic
         op.part = -1
         op.role = 'ALL'
-        op.target = 'CLIPBOARD'
+        op.target_type = 'CLIPBOARD'
         op = row.operator(chat.OPENAI_OT_CopyChatLog.bl_idname, text="",
                           icon='TEXT')
         if props.topic:
             op.topic = props.topic
         op.part = -1
         op.role = 'ALL'
-        op.target = 'TEXT'
+        op.target_type = 'TEXT'
 
         if props.new_topic:
             layout.prop(props, "new_topic_name", text="")
@@ -486,6 +513,8 @@ class OPENAI_PT_ChatToolLog(bpy.types.Panel):
         layout = self.layout
         sc = context.scene
         props = sc.openai_chat_tool_props
+        user_prefs = context.preferences
+        prefs = user_prefs.addons["openai_bridge"].preferences
 
         if props.new_topic or not props.topic:
             return
@@ -507,27 +536,29 @@ class OPENAI_PT_ChatToolLog(bpy.types.Panel):
             op.topic = props.topic
             op.part = part
             op.role = 'ALL'
-            op.target = 'CLIPBOARD'
+            op.target_type = 'CLIPBOARD'
             op = row.operator(chat.OPENAI_OT_CopyChatLog.bl_idname, text="",
                               icon='TEXT')
             op.topic = props.topic
             op.part = part
             op.role = 'ALL'
-            op.target = 'TEXT'
+            op.target_type = 'TEXT'
 
             # Draw user data.
             lines = user_data.split("\n")
             row = layout.row()
             row.label(text="", icon='USER')
             col = row.column()
-            draw_data_on_ui_layout(context, col, lines)
+            draw_data_on_ui_layout(context, col, lines,
+                                   prefs.chat_tool_log_wrap_width)
 
             # Draw condition data.
             if len(condition_data) != 0:
                 row = layout.row()
                 row.label(text="", icon='MODIFIER')
                 col = row.column()
-                draw_data_on_ui_layout(context, col, condition_data)
+                draw_data_on_ui_layout(context, col, condition_data,
+                                       prefs.chat_tool_log_wrap_width)
 
             layout.separator()
 
@@ -541,11 +572,13 @@ class OPENAI_PT_ChatToolLog(bpy.types.Panel):
                 lines = section["body"].split("\n")
                 if section["kind"] == 'TEXT':
                     c = col.column()
-                    draw_data_on_ui_layout(context, c, lines)
+                    draw_data_on_ui_layout(context, c, lines,
+                                           prefs.chat_tool_log_wrap_width)
                 elif section["kind"] == 'CODE':
                     r = col.row(align=True)
                     c = r.box().column(align=True)
-                    draw_data_on_ui_layout(context, c, lines)
+                    draw_data_on_ui_layout(context, c, lines,
+                                           prefs.chat_tool_log_wrap_width)
                     c = r.column(align=True)
                     op = c.operator(chat.OPENAI_OT_RunChatCode.bl_idname,
                                     icon='PLAY', text="")
@@ -571,8 +604,9 @@ class OPENAI_PT_ChatToolLog(bpy.types.Panel):
                     if error_message:
                         r = col.row(align=True)
                         c = r.column(align=True)
-                        c.alert = True
-                        draw_data_on_ui_layout(context, c, [error_message])
+                        draw_data_on_ui_layout(context, c, [error_message],
+                                               prefs.chat_tool_log_wrap_width,
+                                               alert=True)
                         c = r.column(align=True)
                         op = c.operator(
                             chat.OPENAI_OT_CopyChatCodeError.bl_idname,
@@ -601,7 +635,15 @@ class OPENAI_PT_CodeTool(bpy.types.Panel):
         layout.label(text="", icon_value=icon_collection.icon_id)
 
     def draw(self, context):
-        pass
+        layout = self.layout
+
+        if not api_connection_enabled(context):
+            col = layout.column(align=True)
+            col.alert = True
+            col.label(icon='ERROR')
+            col.label(text="API connection is disabled.")
+            col.label(text="This makes some features disabled.")
+            col.label(text="Check Preferences for the detail.")
 
 
 class OPENAI_PT_CodeToolPrompt(bpy.types.Panel):
@@ -671,6 +713,8 @@ class OPENAI_PT_CodeToolGeneratedCode(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
+        user_prefs = context.preferences
+        prefs = user_prefs.addons["openai_bridge"].preferences
 
         code_files = glob.glob(f"{CODE_DATA_DIR}/**/*.py", recursive=True)
         for file in code_files:
@@ -694,8 +738,9 @@ class OPENAI_PT_CodeToolGeneratedCode(bpy.types.Panel):
             if error_message:
                 r = layout.row(align=True)
                 c = r.column(align=True)
-                c.alert = True
-                draw_data_on_ui_layout(context, c, [error_message])
+                draw_data_on_ui_layout(context, c, [error_message],
+                                       prefs.chat_tool_log_wrap_width,
+                                       alert=True)
                 c = r.column(align=True)
                 op = c.operator(code.OPENAI_OT_CopyCodeError.bl_idname,
                                 icon='DUPLICATE', text="")
@@ -786,8 +831,7 @@ class OPENAI_PT_CodeToolEditCode(bpy.types.Panel):
         sc = context.scene
         props = sc.openai_code_tool_edit_code_props
 
-        layout.prop(sc, "openai_code_tool_edit_code_edit_target_text_block",
-                    text="Edit")
+        layout.prop(sc, "openai_code_tool_edit_code_text_block", text="Edit")
 
         row = layout.row(align=True)
         row.operator_context = 'EXEC_DEFAULT'
@@ -795,8 +839,7 @@ class OPENAI_PT_CodeToolEditCode(bpy.types.Panel):
         op = row.operator(code.OPENAI_OT_EditCode.bl_idname, icon='PLAY',
                           text="")
         op.prompt = props.prompt
-        target_text_block = \
-            sc.openai_code_tool_edit_code_edit_target_text_block
+        target_text_block = sc.openai_code_tool_edit_code_text_block
         if target_text_block is not None:
             op.edit_target_text_block_name = target_text_block.name
         conditions = sc.openai_code_tool_edit_code_conditions
@@ -836,6 +879,8 @@ class OPENAI_PT_CodeToolGeneratedCodeTextEditor(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
+        user_prefs = context.preferences
+        prefs = user_prefs.addons["openai_bridge"].preferences
 
         code_files = glob.glob(f"{CODE_DATA_DIR}/**/*.py", recursive=True)
         for file in code_files:
@@ -859,8 +904,9 @@ class OPENAI_PT_CodeToolGeneratedCodeTextEditor(bpy.types.Panel):
             if error_message:
                 r = layout.row(align=True)
                 c = r.column(align=True)
-                c.alert = True
-                draw_data_on_ui_layout(context, c, [error_message])
+                draw_data_on_ui_layout(context, c, [error_message],
+                                       prefs.chat_tool_log_wrap_width,
+                                       alert=True)
                 c = r.column(align=True)
                 op = c.operator(code.OPENAI_OT_CopyCodeError.bl_idname,
                                 icon='DUPLICATE', text="")

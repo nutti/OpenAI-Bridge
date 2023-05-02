@@ -18,6 +18,8 @@ from ..utils.threading import (
     async_request,
 )
 from ..utils import error_storage
+from ..utils.common import api_connection_enabled
+from ..utils.audio_recorder import support_audio_recording
 
 
 class OPENAI_OT_GenerateCodeExample(bpy.types.Operator):
@@ -29,6 +31,9 @@ class OPENAI_OT_GenerateCodeExample(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
+        if not api_connection_enabled(context):
+            return False
+
         if hasattr(context, "button_operator"):
             return True
         if hasattr(context, "button_prop") and \
@@ -120,7 +125,7 @@ class OPENAI_OT_AddCodeCondition(bpy.types.Operator):
 
     bl_idname = "system.openai_add_code_condition"
     bl_description = "Add code condition"
-    bl_label = "Add Coe Condition"
+    bl_label = "Add Code Condition"
     bl_options = {'REGISTER'}
 
     target: bpy.props.EnumProperty(
@@ -156,8 +161,9 @@ class OPENAI_OT_RemoveCodeCondition(bpy.types.Operator):
     bl_label = "Remove Code Condition"
     bl_options = {'REGISTER'}
 
-    index_to_remove: bpy.props.IntProperty(
-        name="Index to Remove",
+    remove_index: bpy.props.IntProperty(
+        name="Remove Index",
+        description="Code index to remove",
         default=0,
         min=0,
     )
@@ -176,13 +182,12 @@ class OPENAI_OT_RemoveCodeCondition(bpy.types.Operator):
         sc = context.scene
 
         if self.target == 'CODE_TOOL':
-            sc.openai_code_tool_conditions.remove(self.index_to_remove)
+            sc.openai_code_tool_conditions.remove(self.remove_index)
         elif self.target == 'GENERATE_CODE':
             sc.openai_code_tool_generate_code_conditions.remove(
-                self.index_to_remove)
+                self.remove_index)
         elif self.target == 'FIX_CODE':
-            sc.openai_code_tool_edit_code_conditions.remove(
-                self.index_to_remove)
+            sc.openai_code_tool_edit_code_conditions.remove(self.remove_index)
         else:
             return {'CANCELLED'}
 
@@ -198,6 +203,7 @@ class OPENAI_OT_RunCode(bpy.types.Operator):
 
     code: bpy.props.StringProperty(
         name="Code",
+        description="Code name to run",
     )
 
     def execute(self, _):
@@ -227,15 +233,16 @@ class OPENAI_OT_CopyCode(bpy.types.Operator):
 
     code: bpy.props.StringProperty(
         name="Code",
+        description="Code name to run",
     )
     target: bpy.props.EnumProperty(
         name="Target",
-        description="Paste target",
+        description="Target to paste the code",
         items=[
             ('CLIPBOARD', "Clipboard", "Clipboard"),
             ('TEXT', "Text", "Text"),
         ],
-        default='CLIPBOARD'
+        default='CLIPBOARD',
     )
 
     def execute(self, context):
@@ -267,6 +274,7 @@ class OPENAI_OT_RemoveCode(bpy.types.Operator):
 
     code: bpy.props.StringProperty(
         name="Code",
+        description="Code name to remove",
     )
 
     def execute(self, _):
@@ -286,6 +294,7 @@ class OPENAI_OT_CopyCodeError(bpy.types.Operator):
 
     code: bpy.props.StringProperty(
         name="Code",
+        description="Code name to copy the code error",
     )
 
     def execute(self, context):
@@ -306,6 +315,7 @@ class OPENAI_OT_CopyCodeError(bpy.types.Operator):
 class OPENAI_CodeConditionPropertyCollection(bpy.types.PropertyGroup):
     condition: bpy.props.StringProperty(
         name="Condition",
+        description="Condition for the conversation",
     )
 
 
@@ -317,19 +327,29 @@ class OPENAI_OT_GenerateCodeFromAudio(bpy.types.Operator):
     bl_options = {'REGISTER'}
 
     num_conditions: bpy.props.IntProperty(
-        name="Number of Conditions",
+        name="Num Conditions",
+        description="Number of conditions for the code generation",
         default=1,
         min=0,
         max=10,
     )
     conditions: bpy.props.CollectionProperty(
         name="Conditions",
+        description="Condition for the conversation",
         type=OPENAI_CodeConditionPropertyCollection,
     )
 
     timer = None
     draw_cb = {"space_data": None, "handler": None}
     recorder = None
+
+    @classmethod
+    def poll(cls, context):
+        if not api_connection_enabled(context):
+            return False
+        if not support_audio_recording():
+            return False
+        return True
 
     @classmethod
     def draw_status(cls, context):
@@ -503,15 +523,18 @@ class OPENAI_OT_GenerateCode(bpy.types.Operator):
 
     prompt: bpy.props.StringProperty(
         name="Prompt",
+        description="Prompt",
     )
     num_conditions: bpy.props.IntProperty(
-        name="Number of Conditions",
+        name="Num of Conditions",
+        description="Number of conditions for the code generation",
         default=1,
         min=0,
         max=10,
     )
     conditions: bpy.props.CollectionProperty(
         name="Conditions",
+        description="Condition for the conversation",
         type=OPENAI_CodeConditionPropertyCollection,
     )
 
@@ -535,16 +558,20 @@ class OPENAI_OT_GenerateCode(bpy.types.Operator):
 
     new_code_name: bpy.props.StringProperty(
         name="New Code Name",
+        description="New code to be created newly",
         default="Blender Code"
-    )
-    code: bpy.props.EnumProperty(
-        name="Code",
-        items=get_codes,
     )
     show_text_editor: bpy.props.BoolProperty(
         name="Show Text Editor",
+        description="Show the generated code in the Text Editor",
         default=False,
     )
+
+    @classmethod
+    def poll(cls, context):
+        if not api_connection_enabled(context):
+            return False
+        return True
 
     def draw(self, _):
         layout = self.layout
@@ -662,6 +689,12 @@ class OPENAI_OT_EditCode(bpy.types.Operator):
     edit_target_text_block_name: bpy.props.StringProperty(
         name="Fix Target Text Block Name",
     )
+
+    @classmethod
+    def poll(cls, context):
+        if not api_connection_enabled(context):
+            return False
+        return True
 
     def draw(self, _):
         layout = self.layout

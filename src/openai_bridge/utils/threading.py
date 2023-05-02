@@ -368,10 +368,10 @@ class RequestHandler:
             # Save image
             dirname = f"{IMAGE_DATA_DIR}/generated"
             os.makedirs(dirname, exist_ok=True)
-            if options["image_name"] == "":
+            if options["auto_image_name"]:
                 filename = urlparse(download_url).path.split("/")[-1]
             else:
-                filename = options["image_name"]
+                filename = f"{options['image_name']}.png"
                 if i >= 1:
                     filename = f"{filename}-{i}"
             filepath = f"{dirname}/{filename}"

@@ -13,6 +13,7 @@ from ..utils.threading import (
     async_request,
 )
 from ..utils import error_storage
+from ..utils.common import api_connection_enabled
 
 
 class OPENAI_OT_Ask(bpy.types.Operator):
@@ -24,6 +25,9 @@ class OPENAI_OT_Ask(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
+        if not api_connection_enabled(context):
+            return False
+
         if hasattr(context, "button_operator"):
             return True
         if hasattr(context, "button_prop") and \
@@ -140,8 +144,9 @@ class OPENAI_OT_RemoveChatCondition(bpy.types.Operator):
     bl_label = "Remove Chat Condition"
     bl_options = {'REGISTER'}
 
-    index_to_remove: bpy.props.IntProperty(
-        name="Index to Remove",
+    remove_index: bpy.props.IntProperty(
+        name="Remove Index",
+        description="Index of the condition to remove",
         default=0,
         min=0,
     )
@@ -149,7 +154,7 @@ class OPENAI_OT_RemoveChatCondition(bpy.types.Operator):
     def execute(self, context):
         sc = context.scene
 
-        sc.openai_chat_tool_conditions.remove(self.index_to_remove)
+        sc.openai_chat_tool_conditions.remove(self.remove_index)
 
         return {'FINISHED'}
 
@@ -163,15 +168,17 @@ class OPENAI_OT_CopyChatLog(bpy.types.Operator):
 
     topic: bpy.props.StringProperty(
         name="Topic",
+        description="Topic that has the log to be copied",
     )
     part: bpy.props.IntProperty(
         name="Part",
-        description="Part of topic to be copied. -1 is all",
+        description="Part that has the log to be copied. -1 is all",
         default=-1,
         min=-1,
     )
     role: bpy.props.EnumProperty(
         name="Role",
+        description="Role that has the log to be copied",
         items=[
             ('USER', "User", "User"),
             ('CONDITION', "Condition", "Condition"),
@@ -180,9 +187,9 @@ class OPENAI_OT_CopyChatLog(bpy.types.Operator):
         ],
         default='ALL',
     )
-    target: bpy.props.EnumProperty(
-        name="Target",
-        description="Paste target",
+    target_type: bpy.props.EnumProperty(
+        name="Target Type",
+        description="Type of the target to be pasted",
         items=[
             ('CLIPBOARD', "Clipboard", "Clipboard"),
             ('TEXT', "Text", "Text"),
@@ -218,9 +225,9 @@ class OPENAI_OT_CopyChatLog(bpy.types.Operator):
             text_to_copy = self.create_text_to_copy_for_part(
                 self.part, chat_file)
 
-        if self.target == 'CLIPBOARD':
+        if self.target_type == 'CLIPBOARD':
             context.window_manager.clipboard = text_to_copy
-        elif self.target == 'TEXT':
+        elif self.target_type == 'TEXT':
             text_data = bpy.data.texts.new(self.topic)
             text_data.clear()
             text_data.write(text_to_copy)
@@ -242,22 +249,23 @@ class OPENAI_OT_CopyChatCode(bpy.types.Operator):
 
     topic: bpy.props.StringProperty(
         name="Topic",
+        description="Topic that has the code to be copied",
     )
     part: bpy.props.IntProperty(
         name="Part",
-        description="Part of topic to be copied. -1 is all",
+        description="Part that has the code to be copied. -1 is all",
         default=0,
         min=0,
     )
     code_index: bpy.props.IntProperty(
         name="Code Index",
-        description="Code index of part to be copied.",
+        description="Index of the code to be copied",
         default=0,
         min=0,
     )
-    target: bpy.props.EnumProperty(
-        name="Target",
-        description="Paste target",
+    target_type: bpy.props.EnumProperty(
+        name="Target Type",
+        description="Type of the target to be pasted",
         items=[
             ('CLIPBOARD', "Clipboard", "Clipboard"),
             ('TEXT', "Text", "Text"),
@@ -276,9 +284,9 @@ class OPENAI_OT_CopyChatCode(bpy.types.Operator):
             self.report({'WARNING'}, "Failed to find the target code")
             return {'CANCELLED'}
 
-        if self.target == 'CLIPBOARD':
+        if self.target_type == 'CLIPBOARD':
             context.window_manager.clipboard = code_to_copy
-        elif self.target == 'TEXT':
+        elif self.target_type == 'TEXT':
             text_data = bpy.data.texts.new(
                 f"{self.topic}-{self.part}-{self.code_index}")
             text_data.clear()
@@ -301,16 +309,17 @@ class OPENAI_OT_RunChatCode(bpy.types.Operator):
 
     topic: bpy.props.StringProperty(
         name="Topic",
+        description="Topic that has the code to run",
     )
     part: bpy.props.IntProperty(
         name="Part",
-        description="Part of topic to be copied. -1 is all",
+        description="Part that has the code to run",
         default=0,
         min=0,
     )
     code_index: bpy.props.IntProperty(
         name="Code Index",
-        description="Code index of part to be copied.",
+        description="Index of the code to run",
         default=0,
         min=0,
     )
@@ -348,7 +357,8 @@ class OPENAI_OT_RemoveChat(bpy.types.Operator):
     bl_options = {'REGISTER'}
 
     topic: bpy.props.StringProperty(
-        name="Code",
+        name="Topic",
+        description="Index of the condition to remove",
     )
 
     def execute(self, _):
@@ -399,6 +409,7 @@ class OPENAI_OT_CopyChatCodeError(bpy.types.Operator):
 class OPENAI_ChatOperatorConditionProperties(bpy.types.PropertyGroup):
     condition: bpy.props.StringProperty(
         name="Condition",
+        description="Condition for the conversation",
     )
 
 
@@ -411,26 +422,31 @@ class OPENAI_OT_Chat(bpy.types.Operator):
 
     prompt: bpy.props.StringProperty(
         name="Prompt",
+        description="Prompt",
     )
     num_conditions: bpy.props.IntProperty(
-        name="Number of Conditions",
+        name="Num Conditions",
+        description="Number of conditions for the conversation",
         default=1,
         min=0,
         max=10,
     )
     conditions: bpy.props.CollectionProperty(
         name="Conditions",
+        description="Condition for the conversation",
         type=OPENAI_ChatOperatorConditionProperties,
     )
 
     new_topic: bpy.props.BoolProperty(
         name="New Topic",
+        description="Create a new topic if true",
         default=True,
     )
 
     new_topic_name: bpy.props.StringProperty(
         name="New Topic Name",
-        default="Blender Chat"
+        description="Topic name to be created",
+        default="Blender Chat",
     )
 
     def get_topics(self, _):
@@ -447,8 +463,15 @@ class OPENAI_OT_Chat(bpy.types.Operator):
 
     topic: bpy.props.EnumProperty(
         name="Topic",
+        description="Topic",
         items=get_topics,
     )
+
+    @classmethod
+    def poll(cls, context):
+        if not api_connection_enabled(context):
+            return False
+        return True
 
     def draw(self, _):
         layout = self.layout

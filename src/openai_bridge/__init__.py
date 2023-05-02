@@ -48,6 +48,7 @@ def register():
     properties.register_properties()
 
     op.register()
+    bpy.utils.register_class(preferences.OPENAI_OT_CheckAPIConnection)
     bpy.utils.register_class(preferences.OPENAI_OT_EnableAudioInput)
     bpy.utils.register_class(preferences.OPENAI_Preferences)
     ui.register()
@@ -56,6 +57,12 @@ def register():
     utils.threading.RequestHandler.start()
 
     bpy.types.WM_MT_button_context.append(menu_func)
+
+    user_prefs = bpy.context.preferences
+    prefs = user_prefs.addons["openai_bridge"].preferences
+
+    prefs.connection_status = utils.common.check_api_connection(
+        prefs.api_key, prefs.http_proxy, prefs.https_proxy)
 
 
 def unregister():
@@ -68,6 +75,7 @@ def unregister():
     ui.unregister()
     bpy.utils.unregister_class(preferences.OPENAI_Preferences)
     bpy.utils.unregister_class(preferences.OPENAI_OT_EnableAudioInput)
+    bpy.utils.unregister_class(preferences.OPENAI_OT_CheckAPIConnection)
     op.unregister()
 
     properties.unregister_properties()

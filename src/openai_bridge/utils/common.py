@@ -1,6 +1,7 @@
 import os
 import json
 import textwrap
+import requests
 
 DATA_DIR = f"{os.path.dirname(__file__)}/../_data"
 IMAGE_DATA_DIR = f"{DATA_DIR}/image"
@@ -8,6 +9,7 @@ AUDIO_DATA_DIR = f"{DATA_DIR}/audio"
 CHAT_DATA_DIR = f"{DATA_DIR}/chat"
 CODE_DATA_DIR = f"{DATA_DIR}/code"
 ICON_DIR = f"{os.path.dirname(__file__)}/../icon"
+CONNECTION_STATUS_OK = "OK"
 
 
 def get_area_region_space(context, area_type, region_type, space_type):
@@ -153,13 +155,11 @@ def get_code_from_response_data(response_data, code_index):
     return codes[code_index]
 
 
-def draw_data_on_ui_layout(context, layout, lines):
-    user_prefs = context.preferences
-    prefs = user_prefs.addons["openai_bridge"].preferences
-
-    wrapped_length = int(context.region.width * prefs.chat_log_wrap_width)
+def draw_data_on_ui_layout(context, layout, lines, wrap_width, alert=False):
+    wrapped_length = int(context.region.width * wrap_width)
     wrapper = textwrap.TextWrapper(width=wrapped_length)
     col = layout.column(align=True)
+    col.alert = alert
     for line in lines:
         wrappeed_lines = wrapper.wrap(text=line)
         for wl in wrappeed_lines:
@@ -167,3 +167,31 @@ def draw_data_on_ui_layout(context, layout, lines):
             col.label(text=wl)
         if len(wrappeed_lines) == 0:
             col.label(text="")
+
+
+def check_api_connection(api_key, http_proxy, https_proxy):
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}"
+    }
+    proxies = {
+        "http": http_proxy,
+        "https": https_proxy,
+    }
+    try:
+        response = requests.get("https://api.openai.com/v1/models",
+                                headers=headers, proxies=proxies)
+    except Exception as e:  # pylint: disable=W0703
+        return f"Error - {e}"
+
+    if response.status_code == requests.codes.ok:
+        return CONNECTION_STATUS_OK
+    else:
+        return f"Error - {response.text} ({response.status_code})"
+
+
+def api_connection_enabled(context):
+    user_prefs = context.preferences
+    prefs = user_prefs.addons["openai_bridge"].preferences
+
+    return prefs.connection_status == CONNECTION_STATUS_OK

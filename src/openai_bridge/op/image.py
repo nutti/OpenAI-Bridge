@@ -9,7 +9,115 @@ from ..utils.threading import (
 from ..utils.common import (
     get_area_region_space,
     IMAGE_DATA_DIR,
+    api_connection_enabled,
 )
+
+
+class OPENAI_OT_GeneateImage(bpy.types.Operator):
+
+    bl_idname = "system.openai_generate_image"
+    bl_description = "Generate image via OpenAI API"
+    bl_label = "Generate Image"
+    bl_options = {'REGISTER'}
+
+    prompt: bpy.props.StringProperty(
+        name="Prompt",
+        description="Description of the image",
+    )
+    num_images: bpy.props.IntProperty(
+        name="Number of Images",
+        description="The number of images to generate",
+        default=1,
+        min=1,
+        max=10,
+    )
+    image_size: bpy.props.EnumProperty(
+        name="Image Size",
+        description="The size of the images to generate",
+        items=[
+            ('256x256', "256x256", "256x256"),
+            ('512x512', "512x512", "512x512"),
+            ('1024x1024', "1024x1024", "1024x1024"),
+        ]
+    )
+    auto_image_name: bpy.props.BoolProperty(
+        name="Auto Image Name",
+        description="Generate image name automatically if true",
+        default=True,
+    )
+    image_name: bpy.props.StringProperty(
+        name="Image Name",
+        description="Name of the image data block for generated",
+    )
+
+    @classmethod
+    def poll(cls, context):
+        if not api_connection_enabled(context):
+            return False
+        return True
+
+    def draw(self, _):
+        layout = self.layout
+
+        layout.prop(self, "prompt")
+
+        row = layout.row()
+        col = row.column(align=True)
+        col.label(text="Size:")
+        col.prop(self, "image_size", text="")
+        col = row.column(align=True)
+        col.label(text="Num")
+        col.prop(self, "num_images", text="")
+
+        col = layout.column(align=True)
+        row = col.row(align=True)
+        row.alignment = 'LEFT'
+        row.label(text="Name:")
+        row.prop(self, "auto_image_name", text="Auto")
+        r = col.row(align=True)
+        r.prop(self, "image_name", text="")
+        r.enabled = not self.auto_image_name
+
+    def invoke(self, context, _):
+        wm = context.window_manager
+        user_prefs = context.preferences
+        prefs = user_prefs.addons["openai_bridge"].preferences
+
+        return wm.invoke_props_dialog(self, width=prefs.popup_menu_width)
+
+    def execute(self, context):
+        user_prefs = context.preferences
+        prefs = user_prefs.addons["openai_bridge"].preferences
+        api_key = prefs.api_key
+
+        request = {
+            "prompt": self.prompt,
+            "n": self.num_images,
+            "size": self.image_size,
+            "response_format": "url",
+        }
+        options = {
+            "image_name": self.image_name,
+            "auto_image_name": self.auto_image_name,
+            "http_proxy": prefs.http_proxy,
+            "https_proxy": prefs.https_proxy,
+        }
+
+        if not prefs.async_execution:
+            sync_request(
+                api_key, 'GENERATE_IMAGE', request, options, context, self)
+        else:
+            transaction_data = {
+                "type": 'IMAGE',
+                "title": options["image_name"][0:32],
+            }
+            async_request(
+                api_key, 'GENERATE_IMAGE', request, options, transaction_data)
+            # Run Message Processing Timer if it has not launched yet.
+            bpy.ops.system.openai_process_message()
+
+        print(f"Sent Request: f{request}")
+        return {'FINISHED'}
 
 
 class OPENAI_OT_EditImage(bpy.types.Operator):
@@ -21,10 +129,11 @@ class OPENAI_OT_EditImage(bpy.types.Operator):
 
     prompt: bpy.props.StringProperty(
         name="Prompt",
+        description="Description of the image",
     )
     num_images: bpy.props.IntProperty(
         name="Number of Images",
-        description="How many images to generate",
+        description="The number of images to generate",
         default=1,
         min=1,
         max=10,
@@ -40,12 +149,18 @@ class OPENAI_OT_EditImage(bpy.types.Operator):
     )
     base_image_name: bpy.props.StringProperty(
         name="Base Image Name",
-        description="Name of file to be used for the base image",
+        description="Name of the image block to be used for the base image",
     )
     mask_image_name: bpy.props.StringProperty(
         name="Mask Image Name",
-        description="Name of image block to be used for the mask image",
+        description="Name of the image block to be used for the mask image",
     )
+
+    @classmethod
+    def poll(cls, context):
+        if not api_connection_enabled(context):
+            return False
+        return True
 
     def draw(self, context):
         layout = self.layout
@@ -145,6 +260,7 @@ class OPENAI_OT_LoadImage(bpy.types.Operator):
 
     image_filepath: bpy.props.StringProperty(
         name="Image Filepath",
+        description="Image filepath to load",
     )
 
     def execute(self, context):
@@ -169,6 +285,7 @@ class OPENAI_OT_RemoveImage(bpy.types.Operator):
 
     image_filepath: bpy.props.StringProperty(
         name="Image Filepath",
+        description="Image filepath to remove",
     )
 
     def execute(self, _):
@@ -176,105 +293,6 @@ class OPENAI_OT_RemoveImage(bpy.types.Operator):
 
         # TODO: Add the option to remove image data block.
 
-        return {'FINISHED'}
-
-
-class OPENAI_OT_GeneateImage(bpy.types.Operator):
-
-    bl_idname = "system.openai_generate_image"
-    bl_description = "Generate image via OpenAI API"
-    bl_label = "Generate Image"
-    bl_options = {'REGISTER'}
-
-    prompt: bpy.props.StringProperty(
-        name="Prompt",
-    )
-    num_images: bpy.props.IntProperty(
-        name="Number of Images",
-        description="How many images to generate",
-        default=1,
-        min=1,
-        max=10,
-    )
-    image_size: bpy.props.EnumProperty(
-        name="Image Size",
-        description="The size of the images to generate",
-        items=[
-            ('256x256', "256x256", "256x256"),
-            ('512x512', "512x512", "512x512"),
-            ('1024x1024', "1024x1024", "1024x1024"),
-        ]
-    )
-    auto_image_name: bpy.props.BoolProperty(
-        name="Auto Image Name",
-        description="Create image name automatically if true",
-        default=True,
-    )
-    image_name: bpy.props.StringProperty(
-        name="Image Name",
-        description="Name of image data block"
-    )
-
-    def draw(self, _):
-        layout = self.layout
-
-        layout.prop(self, "prompt")
-
-        row = layout.row()
-        col = row.column(align=True)
-        col.label(text="Size:")
-        col.prop(self, "image_size", text="")
-        col = row.column(align=True)
-        col.label(text="Num")
-        col.prop(self, "num_images", text="")
-
-        col = layout.column(align=True)
-        row = col.row(align=True)
-        row.alignment = 'LEFT'
-        row.label(text="Name:")
-        row.prop(self, "auto_image_name", text="Auto")
-        r = col.row(align=True)
-        r.prop(self, "image_name", text="")
-        r.enabled = not self.auto_image_name
-
-    def invoke(self, context, _):
-        wm = context.window_manager
-        user_prefs = context.preferences
-        prefs = user_prefs.addons["openai_bridge"].preferences
-
-        return wm.invoke_props_dialog(self, width=prefs.popup_menu_width)
-
-    def execute(self, context):
-        user_prefs = context.preferences
-        prefs = user_prefs.addons["openai_bridge"].preferences
-        api_key = prefs.api_key
-
-        request = {
-            "prompt": self.prompt,
-            "n": self.num_images,
-            "size": self.image_size,
-            "response_format": "url",
-        }
-        options = {
-            "image_name": self.image_name,
-            "http_proxy": prefs.http_proxy,
-            "https_proxy": prefs.https_proxy,
-        }
-
-        if not prefs.async_execution:
-            sync_request(
-                api_key, 'GENERATE_IMAGE', request, options, context, self)
-        else:
-            transaction_data = {
-                "type": 'IMAGE',
-                "title": options["image_name"][0:32],
-            }
-            async_request(
-                api_key, 'GENERATE_IMAGE', request, options, transaction_data)
-            # Run Message Processing Timer if it has not launched yet.
-            bpy.ops.system.openai_process_message()
-
-        print(f"Sent Request: f{request}")
         return {'FINISHED'}
 
 
@@ -287,7 +305,7 @@ class OPENAI_OT_GenerateVariationImage(bpy.types.Operator):
 
     num_images: bpy.props.IntProperty(
         name="Number of Images",
-        description="How many images to generate",
+        description="The number of images to generate",
         default=1,
         min=1,
         max=10,
@@ -305,6 +323,12 @@ class OPENAI_OT_GenerateVariationImage(bpy.types.Operator):
         name="Base Image Name",
         description="Name of file to be used for the base image",
     )
+
+    @classmethod
+    def poll(cls, context):
+        if not api_connection_enabled(context):
+            return False
+        return True
 
     def draw(self, _):
         layout = self.layout

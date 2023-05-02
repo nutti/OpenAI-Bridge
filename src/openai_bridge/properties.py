@@ -12,11 +12,12 @@ from .utils.common import (
 
 class OPENAI_ImageToolGenerateImageProperties(bpy.types.PropertyGroup):
     prompt: bpy.props.StringProperty(
-        name="Property"
+        name="Property",
+        description="Description of the image",
     )
     num_images: bpy.props.IntProperty(
         name="Number of Images",
-        description="How many images to generate",
+        description="The number of images to generate",
         default=1,
         min=1,
         max=10,
@@ -32,14 +33,59 @@ class OPENAI_ImageToolGenerateImageProperties(bpy.types.PropertyGroup):
     )
     auto_image_name: bpy.props.BoolProperty(
         name="Auto Image Name",
-        description="Create image name automatically if true",
+        description="Generate image name automatically if true",
         default=True,
     )
     image_name: bpy.props.StringProperty(
         name="Image Name",
-        description="Name of image data block"
+        description="Name of the image data block for generated",
     )
 
+
+class OPENAI_ImageToolEditImageProperties(bpy.types.PropertyGroup):
+    prompt: bpy.props.StringProperty(
+        name="Property",
+        description="Description of the image",
+    )
+    num_images: bpy.props.IntProperty(
+        name="Number of Images",
+        description="The number of images to generate",
+        default=1,
+        min=1,
+        max=10,
+    )
+    image_size: bpy.props.EnumProperty(
+        name="Image Size",
+        description="The size of the images to generate",
+        items=[
+            ('256x256', "256x256", "256x256"),
+            ('512x512', "512x512", "512x512"),
+            ('1024x1024', "1024x1024", "1024x1024"),
+        ]
+    )
+
+
+class OPENAI_ImageToolGenerateVariationImageProperties(
+        bpy.types.PropertyGroup):
+    num_images: bpy.props.IntProperty(
+        name="Number of Images",
+        description="The number of images to generate",
+        default=1,
+        min=1,
+        max=10,
+    )
+    image_size: bpy.props.EnumProperty(
+        name="Image Size",
+        description="The size of the images to generate",
+        items=[
+            ('256x256', "256x256", "256x256"),
+            ('512x512', "512x512", "512x512"),
+            ('1024x1024', "1024x1024", "1024x1024"),
+        ]
+    )
+
+
+class OPENAI_ImageToolGeneratedImagesProperties(bpy.types.PropertyGroup):
     def get_image_previews_items(self, context):
         sc = context.scene
         collection = sc.openai_image_tool_image_collection
@@ -62,68 +108,27 @@ class OPENAI_ImageToolGenerateImageProperties(bpy.types.PropertyGroup):
 
     edit_target: bpy.props.EnumProperty(
         name="Edit Target",
-        description="Target image for editing",
+        description="Image to edit",
         items=get_image_previews_items,
-    )
-
-
-class OPENAI_ImageToolEditImageProperties(bpy.types.PropertyGroup):
-    prompt: bpy.props.StringProperty(
-        name="Property"
-    )
-    num_images: bpy.props.IntProperty(
-        name="Number of Images",
-        description="How many images to generate",
-        default=1,
-        min=1,
-        max=10,
-    )
-    image_size: bpy.props.EnumProperty(
-        name="Image Size",
-        description="The size of the images to generate",
-        items=[
-            ('256x256', "256x256", "256x256"),
-            ('512x512', "512x512", "512x512"),
-            ('1024x1024', "1024x1024", "1024x1024"),
-        ]
-    )
-
-
-class OPENAI_ImageToolGenerateVariationImageProperties(
-        bpy.types.PropertyGroup):
-    prompt: bpy.props.StringProperty(
-        name="Property"
-    )
-    num_images: bpy.props.IntProperty(
-        name="Number of Images",
-        description="How many images to generate",
-        default=1,
-        min=1,
-        max=10,
-    )
-    image_size: bpy.props.EnumProperty(
-        name="Image Size",
-        description="The size of the images to generate",
-        items=[
-            ('256x256', "256x256", "256x256"),
-            ('512x512', "512x512", "512x512"),
-            ('1024x1024', "1024x1024", "1024x1024"),
-        ]
     )
 
 
 class OPENAI_AudioToolTranscribeSoundStripProperties(bpy.types.PropertyGroup):
     prompt: bpy.props.StringProperty(
         name="Prompt",
+        description="Optional text to specify the style",
     )
     temperature: bpy.props.FloatProperty(
         name="Temperature",
+        description="""Higher value makes the output more random.
+Lower value makes the output more deterministic.""",
         default=0.0,
         min=0.0,
         max=1.0,
     )
     language: bpy.props.EnumProperty(
         name="Language",
+        description="Language of the input audio",
         items=[
             ('en', "English", "English"),
             ('ja', "Japanese", "Japanese"),
@@ -134,11 +139,11 @@ class OPENAI_AudioToolTranscribeSoundStripProperties(bpy.types.PropertyGroup):
 
     selected_sound_strip: bpy.props.BoolProperty(
         name="Selected Sound Strip",
-        description="Transcribe the selected sound strip",
+        description="Transcribe the selected sound strip if true",
         default=True,
     )
 
-    def get_transcribe_target_items(self, context):
+    def get_sound_strip_items(self, context):
         items = []
         for seq in context.sequences:
             if seq.type != 'SOUND':
@@ -148,10 +153,10 @@ class OPENAI_AudioToolTranscribeSoundStripProperties(bpy.types.PropertyGroup):
 
         return items
 
-    transcribe_target: bpy.props.EnumProperty(
-        name="Transcribe Target",
-        description="Target sound strip for transcribing",
-        items=get_transcribe_target_items,
+    sound_strip: bpy.props.EnumProperty(
+        name="Sound Strip",
+        description="Sound strip to transcribe",
+        items=get_sound_strip_items,
     )
 
     auto_sequence_channel: bpy.props.BoolProperty(
@@ -173,30 +178,38 @@ created""",
 class OPENAI_AudioToolTranscribeAudioFileProperties(bpy.types.PropertyGroup):
     prompt: bpy.props.StringProperty(
         name="Prompt",
+        description="Optional text to specify the style",
     )
     temperature: bpy.props.FloatProperty(
         name="Temperature",
+        description="""Higher value makes the output more random.
+Lower value makes the output more deterministic.""",
         default=0.0,
         min=0.0,
         max=1.0,
     )
     language: bpy.props.EnumProperty(
         name="Language",
+        description="Language of the input audio",
         items=[
-            ('en', "English", "English"),       # TODO: Add more languages
+            ('en', "English", "English"),
+            ('ja', "Japanese", "Japanese"),
+            # TODO: Add more languages
         ],
         default='en',
     )
-    source: bpy.props.EnumProperty(
-        name="Source",
+    input_type: bpy.props.EnumProperty(
+        name="Input Type",
+        description="Input type of the audio data",
         items=[
             ('AUDIO_FILE', "Audio File", "Audio File"),
             ('SOUND_DATA_BLOCK', "Sound Data Block", "Sound Data Block"),
         ],
         default='AUDIO_FILE',
     )
-    source_audio_filepath: bpy.props.StringProperty(
-        name="Source Audio Filepath",
+    audio_filepath: bpy.props.StringProperty(
+        name="Audio Filepath",
+        description="Filepath of the audio file to transcribe",
     )
 
     def get_sound_data_block(self, _):
@@ -208,11 +221,12 @@ class OPENAI_AudioToolTranscribeAudioFileProperties(bpy.types.PropertyGroup):
 
     current_text: bpy.props.BoolProperty(
         name="Current Text",
-        description="Store the transcript result to the current text",
+        description="Store the transcript result to the current text if true",
         default=True,
     )
-    source_sound_data_block: bpy.props.EnumProperty(
-        name="Source Sound Data Block",
+    sound_data_block: bpy.props.EnumProperty(
+        name="Sound Data Block",
+        description="Sound data block to transcribe",
         items=get_sound_data_block,
     )
 
@@ -220,17 +234,21 @@ class OPENAI_AudioToolTranscribeAudioFileProperties(bpy.types.PropertyGroup):
 class OPENAI_ChatToolProperties(bpy.types.PropertyGroup):
     prompt: bpy.props.StringProperty(
         name="Prompt",
+        description="Prompt",
     )
     new_topic: bpy.props.BoolProperty(
         name="New Topic",
+        description="Create a new topic if true",
         default=True,
     )
     new_topic_name: bpy.props.StringProperty(
         name="New Topic Name",
-        default="Blender Chat"
+        description="Topic name to be created",
+        default="Blender Chat",
     )
     num_conditions: bpy.props.IntProperty(
-        name="Number of Conditions",
+        name="Num Conditions",
+        description="Number of conditions for the conversation",
         default=1,
         min=0,
         max=10,
@@ -250,6 +268,7 @@ class OPENAI_ChatToolProperties(bpy.types.PropertyGroup):
 
     topic: bpy.props.EnumProperty(
         name="Topic",
+        description="Topic",
         items=get_topics,
     )
 
@@ -257,15 +276,18 @@ class OPENAI_ChatToolProperties(bpy.types.PropertyGroup):
 class OPENAI_ChatToolConditions(bpy.types.PropertyGroup):
     condition: bpy.props.StringProperty(
         name="Condition",
+        description="Condition for the conversation",
     )
 
 
 class OPENAI_CodeToolGenerateCodeProperties(bpy.types.PropertyGroup):
     prompt: bpy.props.StringProperty(
         name="Prompt",
+        description="Prompt",
     )
     input_method: bpy.props.EnumProperty(
-        name="Input",
+        name="Input Method",
+        description="Method to input the prompt",
         items=[
             ('TEXT', "Text", "Input from text"),
             ('AUDIO', "Audio", "Input from audio"),
@@ -273,7 +295,8 @@ class OPENAI_CodeToolGenerateCodeProperties(bpy.types.PropertyGroup):
         default='TEXT',
     )
     num_conditions: bpy.props.IntProperty(
-        name="Number of Conditions",
+        name="Num Conditions",
+        description="Number of conditions for the code generation",
         default=1,
         min=0,
         max=10,
@@ -283,9 +306,11 @@ class OPENAI_CodeToolGenerateCodeProperties(bpy.types.PropertyGroup):
 class OPENAI_CodeToolEditCodeProperties(bpy.types.PropertyGroup):
     prompt: bpy.props.StringProperty(
         name="Prompt",
+        description="Prompt",
     )
     num_conditions: bpy.props.IntProperty(
         name="Number of Conditions",
+        description="Number of conditions for the code generation",
         default=1,
         min=0,
         max=10,
@@ -295,20 +320,24 @@ class OPENAI_CodeToolEditCodeProperties(bpy.types.PropertyGroup):
 class OPENAI_CodeToolConditions(bpy.types.PropertyGroup):
     condition: bpy.props.StringProperty(
         name="Condition",
+        description="Condition for the conversation",
     )
 
 
 class OPENAI_UsageStatisticsImageTool(bpy.types.PropertyGroup):
     images_1024x1024: bpy.props.IntProperty(
         name="1024x1024 Images",
+        description="How many generated images whose size is 1024x1024",
         default=0,
     )
     images_512x512: bpy.props.IntProperty(
         name="512x512 Images",
+        description="How many generated images whose size is 512x512",
         default=0,
     )
     images_256x256: bpy.props.IntProperty(
         name="256x256 Images",
+        description="How many generated images whose size is 256x256",
         default=0,
     )
 
@@ -316,6 +345,7 @@ class OPENAI_UsageStatisticsImageTool(bpy.types.PropertyGroup):
 class OPENAI_UsageStatisticsAudioTool(bpy.types.PropertyGroup):
     seconds_whisper: bpy.props.IntProperty(
         name="Whisper Seconds",
+        description="How many seconds of transcribed audio",
         default=0,
     )
 
@@ -323,14 +353,17 @@ class OPENAI_UsageStatisticsAudioTool(bpy.types.PropertyGroup):
 class OPENAI_UsageStatisticsChatTool(bpy.types.PropertyGroup):
     tokens_gpt35_turbo: bpy.props.IntProperty(
         name="GPT-3.5 Turbo Tokens",
+        description="How many generated token from the 'GPT-3.5 Turobo' model",
         default=0,
     )
     tokens_gpt4_8k: bpy.props.IntProperty(
         name="GPT-4 8K Tokens",
+        description="How many generated token from the 'GPT-4 8K' model",
         default=0,
     )
     tokens_gpt4_32k: bpy.props.IntProperty(
         name="GPT-4 32K Tokens",
+        description="How many generated token from the 'GPT-4 32K' model",
         default=0,
     )
 
@@ -338,14 +371,17 @@ class OPENAI_UsageStatisticsChatTool(bpy.types.PropertyGroup):
 class OPENAI_UsageStatisticsCodeTool(bpy.types.PropertyGroup):
     tokens_gpt35_turbo: bpy.props.IntProperty(
         name="GPT-3.5 Turbo Tokens",
+        description="How many generated token from the 'GPT-3.5 Turobo' model",
         default=0,
     )
     tokens_gpt4_8k: bpy.props.IntProperty(
         name="GPT-4 8K Tokens",
+        description="How many generated token from the 'GPT-4 8K' model",
         default=0,
     )
     tokens_gpt4_32k: bpy.props.IntProperty(
         name="GPT-4 32K Tokens",
+        description="How many generated token from the 'GPT-4 32K' model",
         default=0,
     )
 
@@ -356,6 +392,7 @@ def register_properties():
     bpy.utils.register_class(OPENAI_ImageToolGenerateImageProperties)
     bpy.utils.register_class(OPENAI_ImageToolEditImageProperties)
     bpy.utils.register_class(OPENAI_ImageToolGenerateVariationImageProperties)
+    bpy.utils.register_class(OPENAI_ImageToolGeneratedImagesProperties)
     bpy.utils.register_class(OPENAI_AudioToolTranscribeSoundStripProperties)
     bpy.utils.register_class(OPENAI_AudioToolTranscribeAudioFileProperties)
     bpy.utils.register_class(OPENAI_ChatToolProperties)
@@ -374,11 +411,11 @@ def register_properties():
 
     # Properties for Image Tool.
     scene.openai_image_tool_generate_image_props = bpy.props.PointerProperty(
-        type=OPENAI_ImageToolGenerateImageProperties
+        type=OPENAI_ImageToolGenerateImageProperties,
     )
     scene.openai_image_tool_image_collection = bpy.utils.previews.new()
     scene.openai_image_tool_edit_image_props = bpy.props.PointerProperty(
-        type=OPENAI_ImageToolEditImageProperties
+        type=OPENAI_ImageToolEditImageProperties,
     )
     scene.openai_image_tool_edit_image_base_image = bpy.props.PointerProperty(
         name="Base Image",
@@ -403,6 +440,9 @@ def register_properties():
             type=bpy.types.Image,
             poll=lambda _, img: img.depth // (img.is_float * 3 + 1) == 32,
         )
+    scene.openai_image_tool_generated_images_props = bpy.props.PointerProperty(
+        type=OPENAI_ImageToolGeneratedImagesProperties,
+    )
 
     # Properties for Audio Tool.
     scene.openai_audio_tool_transcribe_sound_strip_props = \
@@ -413,13 +453,16 @@ def register_properties():
         bpy.props.PointerProperty(
             type=OPENAI_AudioToolTranscribeAudioFileProperties,
         )
-    scene.openai_audio_tool_target_text = bpy.props.PointerProperty(
-        name="Target Text",
+    scene.openai_audio_tool_target_text_block = bpy.props.PointerProperty(
+        name="Target Text Block",
+        description="""Name of target text block to where the transcript is
+saved""",
         type=bpy.types.Text,
     )
-    scene.openai_audio_tool_source_sound_data_block = \
+    scene.openai_audio_tool_sound_data_block = \
         bpy.props.PointerProperty(
-            name="Source Sound Data Block",
+            name="Sound Data Block",
+            description="Sound data block to be transcribed",
             type=bpy.types.Sound,
         )
 
@@ -438,6 +481,7 @@ def register_properties():
     )
     scene.openai_code_tool_conditions = bpy.props.CollectionProperty(
         name="Conditions",
+        description="Conditions",
         type=OPENAI_CodeToolConditions,
     )
     scene.openai_code_tool_generate_code_props = bpy.props.PointerProperty(
@@ -446,6 +490,7 @@ def register_properties():
     scene.openai_code_tool_generate_code_conditions = \
         bpy.props.CollectionProperty(
             name="Conditions",
+            description="Conditions",
             type=OPENAI_CodeToolConditions,
         )
     scene.openai_code_tool_edit_code_props = bpy.props.PointerProperty(
@@ -453,11 +498,13 @@ def register_properties():
     )
     scene.openai_code_tool_edit_code_conditions = bpy.props.CollectionProperty(
         name="Conditions",
+        description="Conditions",
         type=OPENAI_CodeToolConditions,
     )
-    scene.openai_code_tool_edit_code_edit_target_text_block = \
+    scene.openai_code_tool_edit_code_text_block = \
         bpy.props.PointerProperty(
-            name="Edit Target Text Block",
+            name="Text Block",
+            description="Text Block to edit",
             type=bpy.types.Text,
         )
 
@@ -491,7 +538,7 @@ def unregister_properties():
     del scene.openai_usage_statistics_audio_tool
     del scene.openai_usage_statistics_image_tool
 
-    del scene.openai_code_tool_edit_code_edit_target_text_block
+    del scene.openai_code_tool_edit_code_edit_text_block
     del scene.openai_code_tool_edit_code_conditions
     del scene.openai_code_tool_edit_code_props
     del scene.openai_code_tool_generate_code_conditions
@@ -502,6 +549,7 @@ def unregister_properties():
     del scene.openai_chat_tool_conditions
     del scene.openai_chat_tool_props
 
+    del scene.openai_image_tool_generated_images_props
     del scene.openai_image_tool_generate_variation_image_base_image
     del scene.openai_image_tool_generate_variation_image_props
     del scene.openai_image_tool_edit_image_mask_image
@@ -528,6 +576,7 @@ def unregister_properties():
     bpy.utils.unregister_class(OPENAI_ChatToolProperties)
     bpy.utils.unregister_class(OPENAI_AudioToolTranscribeAudioFileProperties)
     bpy.utils.unregister_class(OPENAI_AudioToolTranscribeSoundStripProperties)
+    bpy.utils.unregister_class(OPENAI_ImageToolGeneratedImagesProperties)
     bpy.utils.unregister_class(
         OPENAI_ImageToolGenerateVariationImageProperties)
     bpy.utils.unregister_class(OPENAI_ImageToolEditImageProperties)
