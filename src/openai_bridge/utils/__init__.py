@@ -6,12 +6,14 @@ if "bpy" in locals():
     importlib.reload(common)
     importlib.reload(error_storage)
     importlib.reload(threading)
+    importlib.reload(addon_updater)
 else:
     from . import audio_recorder
     from . import pip
     from . import common
     from . import error_storage
     from . import threading
+    from . import addon_updater
 
 # pylint: disable=C0413
 import bpy

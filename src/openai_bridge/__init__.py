@@ -29,7 +29,26 @@ else:
     from . import utils
 
 # pylint: disable=C0413
+import os
 import bpy
+
+
+def register_updater(info):
+    config = utils.addon_updater.AddonUpdaterConfig()
+    config.owner = "nutti"
+    config.repository = "OpenAI-Bridge"
+    config.current_addon_path = os.path.dirname(os.path.realpath(__file__))
+    config.branches = ["main"]
+    ridx = config.current_addon_path.rfind(utils.addon_updater.get_separator())
+    config.addon_directory = config.current_addon_path[:ridx]
+    config.min_release_version = info["version"]
+    config.default_target_addon_path = "openai_bridge"
+    config.target_addon_path = {
+        "main": "src{}openai_bridge".format(
+            utils.addon_updater.get_separator()),
+    }
+    updater = utils.addon_updater.AddonUpdaterManager.get_instance()
+    updater.init(info, config)
 
 
 def menu_func(self, context):
@@ -45,9 +64,13 @@ def menu_func(self, context):
 
 
 def register():
+    register_updater(bl_info)
+
     properties.register_properties()
 
     op.register()
+    bpy.utils.register_class(preferences.OPENAI_OT_CheckAddonUpdate)
+    bpy.utils.register_class(preferences.OPENAI_OT_UpdateAddon)
     bpy.utils.register_class(preferences.OPENAI_OT_CheckAPIConnection)
     bpy.utils.register_class(preferences.OPENAI_OT_EnableAudioInput)
     bpy.utils.register_class(preferences.OPENAI_Preferences)
@@ -76,6 +99,8 @@ def unregister():
     bpy.utils.unregister_class(preferences.OPENAI_Preferences)
     bpy.utils.unregister_class(preferences.OPENAI_OT_EnableAudioInput)
     bpy.utils.unregister_class(preferences.OPENAI_OT_CheckAPIConnection)
+    bpy.utils.unregister_class(preferences.OPENAI_OT_UpdateAddon)
+    bpy.utils.unregister_class(preferences.OPENAI_OT_CheckAddonUpdate)
     op.unregister()
 
     properties.unregister_properties()
