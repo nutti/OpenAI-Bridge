@@ -538,7 +538,7 @@ def unregister_properties():
     del scene.openai_usage_statistics_audio_tool
     del scene.openai_usage_statistics_image_tool
 
-    del scene.openai_code_tool_edit_code_edit_text_block
+    del scene.openai_code_tool_edit_code_text_block
     del scene.openai_code_tool_edit_code_conditions
     del scene.openai_code_tool_edit_code_props
     del scene.openai_code_tool_generate_code_conditions
@@ -558,8 +558,8 @@ def unregister_properties():
     del scene.openai_image_tool_generate_image_props
     del scene.openai_image_tool_image_collection
 
-    del scene.openai_audio_tool_source_sound_data_block
-    del scene.openai_audio_tool_target_text
+    del scene.openai_audio_tool_sound_data_block
+    del scene.openai_audio_tool_target_text_block
     del scene.openai_audio_tool_transcribe_audio_file_props
     del scene.openai_audio_tool_transcribe_sound_strip_props
 

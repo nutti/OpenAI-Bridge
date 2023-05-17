@@ -11,8 +11,10 @@ from ..utils.common import (
     IMAGE_DATA_DIR,
     api_connection_enabled,
 )
+from ..utils.bl_class_registry import BlClassRegistry
 
 
+@BlClassRegistry()
 class OPENAI_OT_GeneateImage(bpy.types.Operator):
 
     bl_idname = "system.openai_generate_image"
@@ -120,6 +122,7 @@ class OPENAI_OT_GeneateImage(bpy.types.Operator):
         return {'FINISHED'}
 
 
+@BlClassRegistry()
 class OPENAI_OT_EditImage(bpy.types.Operator):
 
     bl_idname = "system.openai_edit_image"
@@ -251,6 +254,7 @@ class OPENAI_OT_EditImage(bpy.types.Operator):
         return {'FINISHED'}
 
 
+@BlClassRegistry()
 class OPENAI_OT_LoadImage(bpy.types.Operator):
 
     bl_idname = "system.openai_load_image"
@@ -276,6 +280,7 @@ class OPENAI_OT_LoadImage(bpy.types.Operator):
         return {'FINISHED'}
 
 
+@BlClassRegistry()
 class OPENAI_OT_RemoveImage(bpy.types.Operator):
 
     bl_idname = "system.openai_remove_image"
@@ -296,6 +301,7 @@ class OPENAI_OT_RemoveImage(bpy.types.Operator):
         return {'FINISHED'}
 
 
+@BlClassRegistry()
 class OPENAI_OT_GenerateVariationImage(bpy.types.Operator):
 
     bl_idname = "system.openai_generate_variation_image"

@@ -21,8 +21,10 @@ from ..utils.common import (
     ChatTextFile,
 )
 from ..utils import error_storage
+from ..utils.bl_class_registry import BlClassRegistry
 
 
+@BlClassRegistry()
 class OPENAI_OT_ProcessMessage(bpy.types.Operator):
 
     bl_idname = "system.openai_process_message"

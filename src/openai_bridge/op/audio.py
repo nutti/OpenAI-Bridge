@@ -8,8 +8,10 @@ from ..utils.threading import (
     async_request,
 )
 from ..utils.common import api_connection_enabled
+from ..utils.bl_class_registry import BlClassRegistry
 
 
+@BlClassRegistry()
 class OPENAI_OT_TranscribeSoundStrip(bpy.types.Operator):
 
     bl_idname = "system.openai_transcribe_sound_strip"
@@ -153,6 +155,7 @@ created""",
         return {'FINISHED'}
 
 
+@BlClassRegistry()
 class OPENAI_OT_OpenAudioFile(bpy.types.Operator, ImportHelper):
 
     bl_idname = "system.openai_open_audio_file"
@@ -173,6 +176,7 @@ class OPENAI_OT_OpenAudioFile(bpy.types.Operator, ImportHelper):
         return {'FINISHED'}
 
 
+@BlClassRegistry()
 class OPENAI_OT_TranscribeAudioFile(bpy.types.Operator):
 
     bl_idname = "system.openai_transcribe_audio_file"

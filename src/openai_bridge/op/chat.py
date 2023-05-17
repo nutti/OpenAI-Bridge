@@ -14,8 +14,10 @@ from ..utils.threading import (
 )
 from ..utils import error_storage
 from ..utils.common import api_connection_enabled
+from ..utils.bl_class_registry import BlClassRegistry
 
 
+@BlClassRegistry()
 class OPENAI_OT_Ask(bpy.types.Operator):
 
     bl_idname = "system.openai_ask"
@@ -122,6 +124,7 @@ class OPENAI_OT_Ask(bpy.types.Operator):
         return {'FINISHED'}
 
 
+@BlClassRegistry()
 class OPENAI_OT_AddChatCondition(bpy.types.Operator):
 
     bl_idname = "system.openai_add_chat_condition"
@@ -137,6 +140,7 @@ class OPENAI_OT_AddChatCondition(bpy.types.Operator):
         return {'FINISHED'}
 
 
+@BlClassRegistry()
 class OPENAI_OT_RemoveChatCondition(bpy.types.Operator):
 
     bl_idname = "system.openai_remove_chat_condition"
@@ -159,6 +163,7 @@ class OPENAI_OT_RemoveChatCondition(bpy.types.Operator):
         return {'FINISHED'}
 
 
+@BlClassRegistry()
 class OPENAI_OT_CopyChatLog(bpy.types.Operator):
 
     bl_idname = "system.openai_copy_chat_log"
@@ -240,6 +245,7 @@ class OPENAI_OT_CopyChatLog(bpy.types.Operator):
         return {'FINISHED'}
 
 
+@BlClassRegistry()
 class OPENAI_OT_CopyChatCode(bpy.types.Operator):
 
     bl_idname = "system.openai_copy_chat_code"
@@ -300,6 +306,7 @@ class OPENAI_OT_CopyChatCode(bpy.types.Operator):
         return {'FINISHED'}
 
 
+@BlClassRegistry()
 class OPENAI_OT_RunChatCode(bpy.types.Operator):
 
     bl_idname = "system.openai_run_chat_code"
@@ -349,6 +356,7 @@ class OPENAI_OT_RunChatCode(bpy.types.Operator):
         return {'FINISHED'}
 
 
+@BlClassRegistry()
 class OPENAI_OT_RemoveChat(bpy.types.Operator):
 
     bl_idname = "system.openai_remove_chat"
@@ -367,6 +375,7 @@ class OPENAI_OT_RemoveChat(bpy.types.Operator):
         return {'FINISHED'}
 
 
+@BlClassRegistry()
 class OPENAI_OT_CopyChatCodeError(bpy.types.Operator):
 
     bl_idname = "system.openai_copy_chat_code_error"
@@ -406,6 +415,7 @@ class OPENAI_OT_CopyChatCodeError(bpy.types.Operator):
         return {'FINISHED'}
 
 
+@BlClassRegistry()
 class OPENAI_ChatOperatorConditionProperties(bpy.types.PropertyGroup):
     condition: bpy.props.StringProperty(
         name="Condition",
@@ -413,6 +423,7 @@ class OPENAI_ChatOperatorConditionProperties(bpy.types.PropertyGroup):
     )
 
 
+@BlClassRegistry()
 class OPENAI_OT_Chat(bpy.types.Operator):
 
     bl_idname = "system.openai_chat"

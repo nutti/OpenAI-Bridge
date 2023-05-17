@@ -15,11 +15,12 @@ bl_info = {
 if "bpy" in locals():
     import importlib
     # pylint: disable=E0601
+    importlib.reload(utils)
+    utils.bl_class_registry.BlClassRegistry.cleanup()
     importlib.reload(op)
     importlib.reload(properties)
     importlib.reload(preferences)
     importlib.reload(ui)
-    importlib.reload(utils)
 else:
     import bpy
     from . import op
@@ -48,7 +49,7 @@ def register_updater(info):
             utils.addon_updater.get_separator()),
     }
     updater = utils.addon_updater.AddonUpdaterManager.get_instance()
-    updater.init(info, config)
+    updater.init(config)
 
 
 def menu_func(self, context):
@@ -68,15 +69,8 @@ def register():
 
     properties.register_properties()
 
-    op.register()
-    bpy.utils.register_class(preferences.OPENAI_OT_CheckAddonUpdate)
-    bpy.utils.register_class(preferences.OPENAI_OT_UpdateAddon)
-    bpy.utils.register_class(preferences.OPENAI_OT_CheckAPIConnection)
-    bpy.utils.register_class(preferences.OPENAI_OT_EnableAudioInput)
-    bpy.utils.register_class(preferences.OPENAI_Preferences)
-    ui.register()
-
-    bpy.utils.register_class(utils.threading.OPENAI_OT_ProcessMessage)
+    utils.bl_class_registry.BlClassRegistry.register()
+    ui.register_tools()
     utils.threading.RequestHandler.start()
 
     bpy.types.WM_MT_button_context.append(menu_func)
@@ -89,18 +83,10 @@ def register():
 
 
 def unregister():
-
     bpy.types.WM_MT_button_context.remove(menu_func)
 
-    bpy.utils.unregister_class(utils.threading.OPENAI_OT_ProcessMessage)
     utils.threading.RequestHandler.stop()
 
-    ui.unregister()
-    bpy.utils.unregister_class(preferences.OPENAI_Preferences)
-    bpy.utils.unregister_class(preferences.OPENAI_OT_EnableAudioInput)
-    bpy.utils.unregister_class(preferences.OPENAI_OT_CheckAPIConnection)
-    bpy.utils.unregister_class(preferences.OPENAI_OT_UpdateAddon)
-    bpy.utils.unregister_class(preferences.OPENAI_OT_CheckAddonUpdate)
-    op.unregister()
-
+    ui.unregister_tools()
+    utils.bl_class_registry.BlClassRegistry.unregister()
     properties.unregister_properties()

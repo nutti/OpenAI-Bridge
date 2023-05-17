@@ -20,8 +20,10 @@ from ..utils.threading import (
 from ..utils import error_storage
 from ..utils.common import api_connection_enabled
 from ..utils.audio_recorder import support_audio_recording
+from ..utils.bl_class_registry import BlClassRegistry
 
 
+@BlClassRegistry()
 class OPENAI_OT_GenerateCodeExample(bpy.types.Operator):
 
     bl_idname = "system.openai_generate_code_example"
@@ -121,6 +123,7 @@ class OPENAI_OT_GenerateCodeExample(bpy.types.Operator):
         return {'FINISHED'}
 
 
+@BlClassRegistry()
 class OPENAI_OT_AddCodeCondition(bpy.types.Operator):
 
     bl_idname = "system.openai_add_code_condition"
@@ -154,6 +157,7 @@ class OPENAI_OT_AddCodeCondition(bpy.types.Operator):
         return {'FINISHED'}
 
 
+@BlClassRegistry()
 class OPENAI_OT_RemoveCodeCondition(bpy.types.Operator):
 
     bl_idname = "system.openai_remove_code_condition"
@@ -194,6 +198,7 @@ class OPENAI_OT_RemoveCodeCondition(bpy.types.Operator):
         return {'FINISHED'}
 
 
+@BlClassRegistry()
 class OPENAI_OT_RunCode(bpy.types.Operator):
 
     bl_idname = "system.openai_run_code"
@@ -224,6 +229,7 @@ class OPENAI_OT_RunCode(bpy.types.Operator):
         return {'FINISHED'}
 
 
+@BlClassRegistry()
 class OPENAI_OT_CopyCode(bpy.types.Operator):
 
     bl_idname = "system.openai_copy_code"
@@ -265,6 +271,7 @@ class OPENAI_OT_CopyCode(bpy.types.Operator):
         return {'FINISHED'}
 
 
+@BlClassRegistry()
 class OPENAI_OT_RemoveCode(bpy.types.Operator):
 
     bl_idname = "system.openai_remove_code"
@@ -285,6 +292,7 @@ class OPENAI_OT_RemoveCode(bpy.types.Operator):
         return {'FINISHED'}
 
 
+@BlClassRegistry()
 class OPENAI_OT_CopyCodeError(bpy.types.Operator):
 
     bl_idname = "system.openai_copy_code_error"
@@ -312,13 +320,15 @@ class OPENAI_OT_CopyCodeError(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class OPENAI_CodeConditionPropertyCollection(bpy.types.PropertyGroup):
+@BlClassRegistry()
+class OPENAI_CodeOperatorConditionProperties(bpy.types.PropertyGroup):
     condition: bpy.props.StringProperty(
         name="Condition",
         description="Condition for the conversation",
     )
 
 
+@BlClassRegistry()
 class OPENAI_OT_GenerateCodeFromAudio(bpy.types.Operator):
 
     bl_idname = "system.openai_generate_code_from_audio"
@@ -336,7 +346,7 @@ class OPENAI_OT_GenerateCodeFromAudio(bpy.types.Operator):
     conditions: bpy.props.CollectionProperty(
         name="Conditions",
         description="Condition for the conversation",
-        type=OPENAI_CodeConditionPropertyCollection,
+        type=OPENAI_CodeOperatorConditionProperties,
     )
 
     timer = None
@@ -514,6 +524,7 @@ class OPENAI_OT_GenerateCodeFromAudio(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
+@BlClassRegistry()
 class OPENAI_OT_GenerateCode(bpy.types.Operator):
 
     bl_idname = "system.openai_generate_code"
@@ -535,7 +546,7 @@ class OPENAI_OT_GenerateCode(bpy.types.Operator):
     conditions: bpy.props.CollectionProperty(
         name="Conditions",
         description="Condition for the conversation",
-        type=OPENAI_CodeConditionPropertyCollection,
+        type=OPENAI_CodeOperatorConditionProperties,
     )
 
     execute_immediately: bpy.props.BoolProperty(
@@ -666,6 +677,7 @@ class OPENAI_OT_GenerateCode(bpy.types.Operator):
         return {'FINISHED'}
 
 
+@BlClassRegistry()
 class OPENAI_OT_EditCode(bpy.types.Operator):
 
     bl_idname = "system.openai_edit_code"
@@ -684,7 +696,7 @@ class OPENAI_OT_EditCode(bpy.types.Operator):
     )
     conditions: bpy.props.CollectionProperty(
         name="Conditions",
-        type=OPENAI_CodeConditionPropertyCollection,
+        type=OPENAI_CodeOperatorConditionProperties,
     )
     edit_target_text_block_name: bpy.props.StringProperty(
         name="Fix Target Text Block Name",

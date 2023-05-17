@@ -14,8 +14,10 @@ from ..utils.common import (
 )
 from ..utils import error_storage
 from ..utils.common import api_connection_enabled
+from ..utils.bl_class_registry import BlClassRegistry
 
 
+@BlClassRegistry()
 class OPENAI_PT_ImageTool(bpy.types.Panel):
 
     bl_region_type = 'UI'
@@ -42,6 +44,7 @@ class OPENAI_PT_ImageTool(bpy.types.Panel):
             col.label(text="Check Preferences for the detail.")
 
 
+@BlClassRegistry()
 class OPENAI_PT_ImageToolGenerateImage(bpy.types.Panel):
 
     bl_region_type = 'UI'
@@ -89,6 +92,7 @@ class OPENAI_PT_ImageToolGenerateImage(bpy.types.Panel):
         r.enabled = not props.auto_image_name
 
 
+@BlClassRegistry()
 class OPENAI_PT_ImageToolEditImage(bpy.types.Panel):
 
     bl_region_type = 'UI'
@@ -134,6 +138,7 @@ class OPENAI_PT_ImageToolEditImage(bpy.types.Panel):
         col.prop(props, "num_images", text="")
 
 
+@BlClassRegistry()
 class OPENAI_PT_ImageToolGenereateVariationImage(bpy.types.Panel):
 
     bl_region_type = 'UI'
@@ -173,6 +178,7 @@ class OPENAI_PT_ImageToolGenereateVariationImage(bpy.types.Panel):
         col.prop(props, "num_images", text="")
 
 
+@BlClassRegistry()
 class OPENAI_PT_ImageToolGeneratedImages(bpy.types.Panel):
 
     bl_region_type = 'UI'
@@ -202,6 +208,7 @@ class OPENAI_PT_ImageToolGeneratedImages(bpy.types.Panel):
         op.image_filepath = props.edit_target
 
 
+@BlClassRegistry()
 class OPENAI_PT_AudioToolSequenceEditor(bpy.types.Panel):
 
     bl_region_type = 'UI'
@@ -228,6 +235,7 @@ class OPENAI_PT_AudioToolSequenceEditor(bpy.types.Panel):
             col.label(text="Check Preferences for the detail.")
 
 
+@BlClassRegistry()
 class OPENAI_PT_AudioToolTranscribeSoundStrip(bpy.types.Panel):
 
     bl_region_type = 'UI'
@@ -296,6 +304,7 @@ class OPENAI_PT_AudioToolTranscribeSoundStrip(bpy.types.Panel):
         r.enabled = not props.auto_sequence_channel
 
 
+@BlClassRegistry()
 class OPENAI_PT_AudioToolTextEditor(bpy.types.Panel):
 
     bl_region_type = 'UI'
@@ -314,6 +323,7 @@ class OPENAI_PT_AudioToolTextEditor(bpy.types.Panel):
         pass
 
 
+@BlClassRegistry()
 class OPENAI_PT_AudioToolTranscribeAudioFile(bpy.types.Panel):
 
     bl_region_type = 'UI'
@@ -391,6 +401,7 @@ class OPENAI_PT_AudioToolTranscribeAudioFile(bpy.types.Panel):
         r.enabled = not props.current_text
 
 
+@BlClassRegistry()
 class OPENAI_PT_ChatTool(bpy.types.Panel):
 
     bl_region_type = 'UI'
@@ -451,6 +462,7 @@ class OPENAI_PT_ChatTool(bpy.types.Panel):
                 op.topic = props.topic
 
 
+@BlClassRegistry()
 class OPENAI_PT_ChatToolPrompt(bpy.types.Panel):
 
     bl_region_type = 'UI'
@@ -496,6 +508,7 @@ class OPENAI_PT_ChatToolPrompt(bpy.types.Panel):
             op.index_to_remove = i
 
 
+@BlClassRegistry()
 class OPENAI_PT_ChatToolLog(bpy.types.Panel):
 
     bl_region_type = 'UI'
@@ -620,6 +633,7 @@ class OPENAI_PT_ChatToolLog(bpy.types.Panel):
             layout.separator(factor=2.0)
 
 
+@BlClassRegistry()
 class OPENAI_PT_CodeTool(bpy.types.Panel):
 
     bl_region_type = 'UI'
@@ -646,6 +660,7 @@ class OPENAI_PT_CodeTool(bpy.types.Panel):
             col.label(text="Check Preferences for the detail.")
 
 
+@BlClassRegistry()
 class OPENAI_PT_CodeToolPrompt(bpy.types.Panel):
 
     bl_region_type = 'UI'
@@ -698,6 +713,7 @@ class OPENAI_PT_CodeToolPrompt(bpy.types.Panel):
             op.target = 'CODE_TOOL'
 
 
+@BlClassRegistry()
 class OPENAI_PT_CodeToolGeneratedCode(bpy.types.Panel):
 
     bl_region_type = 'UI'
@@ -747,6 +763,7 @@ class OPENAI_PT_CodeToolGeneratedCode(bpy.types.Panel):
                 op.code = code_name
 
 
+@BlClassRegistry()
 class OPENAI_PT_CodeToolTextEditor(bpy.types.Panel):
 
     bl_region_type = 'UI'
@@ -765,6 +782,7 @@ class OPENAI_PT_CodeToolTextEditor(bpy.types.Panel):
         pass
 
 
+@BlClassRegistry()
 class OPENAI_PT_CodeToolGenerateCode(bpy.types.Panel):
 
     bl_region_type = 'UI'
@@ -813,6 +831,7 @@ class OPENAI_PT_CodeToolGenerateCode(bpy.types.Panel):
             op.target = 'GENERATE_CODE'
 
 
+@BlClassRegistry()
 class OPENAI_PT_CodeToolEditCode(bpy.types.Panel):
 
     bl_region_type = 'UI'
@@ -864,6 +883,7 @@ class OPENAI_PT_CodeToolEditCode(bpy.types.Panel):
             op.target = 'FIX_CODE'
 
 
+@BlClassRegistry()
 class OPENAI_PT_CodeToolGeneratedCodeTextEditor(bpy.types.Panel):
 
     bl_region_type = 'UI'

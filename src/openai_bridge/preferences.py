@@ -6,9 +6,11 @@ from .utils.common import (
     check_api_connection,
     api_connection_enabled,
 )
-from .utils.addon_updater import AddonUpdatorManager
+from .utils.addon_updater import AddonUpdaterManager
+from .utils.bl_class_registry import BlClassRegistry
 
 
+@BlClassRegistry()
 class OPENAI_OT_CheckAddonUpdate(bpy.types.Operator):
     bl_idname = "system.openai_check_addon_update"
     bl_label = "Check Update"
@@ -16,12 +18,13 @@ class OPENAI_OT_CheckAddonUpdate(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, _):
-        updater = AddonUpdatorManager.get_instance()
+        updater = AddonUpdaterManager.get_instance()
         updater.check_update_candidate()
 
         return {'FINISHED'}
 
 
+@BlClassRegistry()
 class OPENAI_OT_UpdateAddon(bpy.types.Operator):
     bl_idname = "system.openai_update_addon"
     bl_label = "Update"
@@ -35,20 +38,21 @@ class OPENAI_OT_UpdateAddon(bpy.types.Operator):
     )
 
     def execute(self, _):
-        updater = AddonUpdatorManager.get_instance()
+        updater = AddonUpdaterManager.get_instance()
         updater.update(self.branch_name)
 
         return {'FINISHED'}
 
 
 def get_update_candidate_branches(_, __):
-    updater = AddonUpdatorManager.get_instance()
+    updater = AddonUpdaterManager.get_instance()
     if not updater.candidate_checked():
         return []
 
     return [(name, name, "") for name in updater.get_candidate_branch_names()]
 
 
+@BlClassRegistry()
 class OPENAI_OT_CheckAPIConnection(bpy.types.Operator):
 
     bl_idname = "system.openai_check_api_connection"
@@ -66,6 +70,7 @@ class OPENAI_OT_CheckAPIConnection(bpy.types.Operator):
         return {'FINISHED'}
 
 
+@BlClassRegistry()
 class OPENAI_OT_EnableAudioInput(bpy.types.Operator):
 
     bl_idname = "system.openai_enable_audio_input"
@@ -87,6 +92,7 @@ library to Blender Python environment)"""
         return {'FINISHED'}
 
 
+@BlClassRegistry()
 class OPENAI_Preferences(bpy.types.AddonPreferences):
     bl_idname = "openai_bridge"
 
@@ -410,7 +416,7 @@ class OPENAI_Preferences(bpy.types.AddonPreferences):
                 col.operator(OPENAI_OT_EnableAudioInput.bl_idname)
 
         elif self.category == 'UPDATE':
-            updater = AddonUpdatorManager.get_instance()
+            updater = AddonUpdaterManager.get_instance()
 
             layout.separator()
 
