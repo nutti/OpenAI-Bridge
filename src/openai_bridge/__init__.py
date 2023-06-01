@@ -1,7 +1,7 @@
 bl_info = {
     "name": "OpenAI Bridge",
     "author": "nutti",
-    "version": (0, 2, 0),
+    "version": (1, 0, 0),
     "blender": (3, 5, 0),
     "location": "3D View",
     "warning": "",
