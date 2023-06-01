@@ -5,6 +5,30 @@
 ## [Unreleased](https://github.com/nutti/OpenAI-Bridge/compare/v0.2.0...main)
 
 <!-- markdownlint-disable-next-line MD013 -->
+## [Version 1.0.0](https://github.com/nutti/OpenAI-Bridge/compare/v0.2.0...v1.0.0) - 2023.X.XX
+
+### New Features
+
+* Image Tool
+  * Edit images.
+  * Generate variation images.
+* Code Tool
+  * Generate/Edit code.
+  * Generate code examples for Python API.
+  * Mode to execute the code immediately.
+  * Audio input.
+
+### Other Updates
+
+* Improve UI
+  * Add UI to show the background execution status.
+  * Add UI to show the audio input status.
+  * Add buttons to open the web page for the OpenAI website.
+  * Add test for the API connection and the audio input.
+* Show the usage statistics.
+* Support the proxy configuration.
+
+<!-- markdownlint-disable-next-line MD013 -->
 ## [Version 0.2.0](https://github.com/nutti/OpenAI-Bridge/compare/v0.1.0...v0.2.0) - 2023.3.29
 
 ### New Features

@@ -21,6 +21,9 @@ The features of this add-on are as follows.
 
 * Image Tool
   * Generate Images: Generate images using the OpenAI Image API.
+  * Edit Images: Edit images using the OpenAI Image API.
+  * Generate Variation Images: Generate variation images using the OpenAI
+    Image API.
   * Supported Models: 'DALL-E'
 * Audio
   * Transcribe Audio: Transcribe audio using the OpenAI Audio API.
@@ -30,17 +33,14 @@ The features of this add-on are as follows.
   * Ask Blender Operators/Properties: Ask Blender operators/properties from the
     right-click menu.
   * Supported Models: 'gpt-3.5-turbo', 'gpt-4', 'gpt-4-32k'
-
-### Features for Future Releases
-
-* Image Tool
-  * Edit Image: Edit images using the OpenAI API.
-* Code Tool
-  * Generate Sample Code: Generate sample codes for Blender
-    operators/properties from the right-click menu.
-  * Execute Code Immediately: Execute code immediately from the prompt/audio.
-* Improve Async Execution
-  * Show the status of the asynchronous exeuction.
+* Code
+  * Generate Code: Generate Blender Python specific code using the OpenAI Chat API.
+  * Edit Code: Edit Blender Python specific code using the OpenAI Chat API.
+  * Generate Code Examples: Generate code examples using Python API
+    from the right-click menu.
+  * Execute Code Immediately: Execute the generated code immediately. This
+    allows us to control Blender from the prompt or audio input.
+  * Supported Models: 'gpt-3.5-turbo', 'gpt-4', 'gpt-4-32k'
 
 ## Tutorials
 
