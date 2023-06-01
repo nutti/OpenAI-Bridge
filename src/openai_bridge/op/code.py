@@ -131,9 +131,9 @@ class OPENAI_OT_AddCodeCondition(bpy.types.Operator):
     bl_label = "Add Code Condition"
     bl_options = {'REGISTER'}
 
-    target: bpy.props.EnumProperty(
-        name="Target",
-        description="Remove target",
+    target_type: bpy.props.EnumProperty(
+        name="Target Type",
+        description="Type of the target to remove",
         items=[
             ('CODE_TOOL', "Code Tool", "Code Tool"),
             ('GENERATE_CODE', "Generate Code", "Generate Code"),
@@ -145,11 +145,11 @@ class OPENAI_OT_AddCodeCondition(bpy.types.Operator):
     def execute(self, context):
         sc = context.scene
 
-        if self.target == 'CODE_TOOL':
+        if self.target_type == 'CODE_TOOL':
             sc.openai_code_tool_conditions.add()
-        elif self.target == 'GENERATE_CODE':
+        elif self.target_type == 'GENERATE_CODE':
             sc.openai_code_tool_generate_code_conditions.add()
-        elif self.target == 'FIX_CODE':
+        elif self.target_type == 'FIX_CODE':
             sc.openai_code_tool_edit_code_conditions.add()
         else:
             return {'CANCELLED'}
@@ -171,9 +171,9 @@ class OPENAI_OT_RemoveCodeCondition(bpy.types.Operator):
         default=0,
         min=0,
     )
-    target: bpy.props.EnumProperty(
-        name="Target",
-        description="Remove target",
+    target_type: bpy.props.EnumProperty(
+        name="Target Type",
+        description="Type of the target to remove",
         items=[
             ('CODE_TOOL', "Code Tool", "Code Tool"),
             ('GENERATE_CODE', "Generate Code", "Generate Code"),
@@ -185,12 +185,12 @@ class OPENAI_OT_RemoveCodeCondition(bpy.types.Operator):
     def execute(self, context):
         sc = context.scene
 
-        if self.target == 'CODE_TOOL':
+        if self.target_type == 'CODE_TOOL':
             sc.openai_code_tool_conditions.remove(self.remove_index)
-        elif self.target == 'GENERATE_CODE':
+        elif self.target_type == 'GENERATE_CODE':
             sc.openai_code_tool_generate_code_conditions.remove(
                 self.remove_index)
-        elif self.target == 'FIX_CODE':
+        elif self.target_type == 'FIX_CODE':
             sc.openai_code_tool_edit_code_conditions.remove(self.remove_index)
         else:
             return {'CANCELLED'}
@@ -241,9 +241,9 @@ class OPENAI_OT_CopyCode(bpy.types.Operator):
         name="Code",
         description="Code name to run",
     )
-    target: bpy.props.EnumProperty(
-        name="Target",
-        description="Target to paste the code",
+    target_type: bpy.props.EnumProperty(
+        name="Target Type",
+        description="Type of the target to paste the code",
         items=[
             ('CLIPBOARD', "Clipboard", "Clipboard"),
             ('TEXT', "Text", "Text"),
@@ -256,9 +256,9 @@ class OPENAI_OT_CopyCode(bpy.types.Operator):
         with open(filepath, "r", encoding="utf-8") as f:
             code_to_copy = f.read()
 
-        if self.target == 'CLIPBOARD':
+        if self.target_type == 'CLIPBOARD':
             context.window_manager.clipboard = code_to_copy
-        elif self.target == 'TEXT':
+        elif self.target_type == 'TEXT':
             text_data = bpy.data.texts.new(f"{self.code}.py")
             text_data.clear()
             text_data.write(code_to_copy)
@@ -515,10 +515,12 @@ class OPENAI_OT_GenerateCodeFromAudio(bpy.types.Operator):
             cls.draw_status, (context, ), 'WINDOW', 'POST_PIXEL')
 
         cls.recorder = AudioRecorder(
-            prefs.audio_record_format, prefs.audio_record_channels,
-            prefs.audio_record_rate, prefs.audio_record_chunk_size,
-            prefs.audio_record_silence_threshold,
-            prefs.audio_record_silence_duration_limit)
+            prefs.code_tool_audio_record_format,
+            prefs.code_tool_audio_record_channels,
+            prefs.code_tool_audio_record_rate,
+            prefs.code_tool_audio_record_chunk_size,
+            prefs.code_tool_audio_record_silence_threshold,
+            prefs.code_tool_audio_record_silence_duration_limit)
         cls.recorder.record(async_execution=True)
 
         return {'RUNNING_MODAL'}

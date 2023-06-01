@@ -179,9 +179,15 @@ class OPENAI_OT_EditImage(bpy.types.Operator):
         col.label(text="Num")
         col.prop(self, "num_images", text="")
 
-        layout.prop(sc, "openai_edit_image_mask_image")
-        if sc.openai_edit_image_mask_image is not None:
-            self.mask_image_name = sc.openai_edit_image_mask_image.name
+        layout.prop(sc, "openai_image_tool_edit_image_base_image")
+        if sc.openai_image_tool_edit_image_base_image is not None:
+            self.mask_image_name = \
+                sc.openai_image_tool_edit_image_base_image.name
+
+        layout.prop(sc, "openai_image_tool_edit_image_mask_image")
+        if sc.openai_image_tool_edit_image_mask_image is not None:
+            self.mask_image_name = \
+                sc.openai_image_tool_edit_image_mask_image.name
 
     def invoke(self, context, _):
         wm = context.window_manager

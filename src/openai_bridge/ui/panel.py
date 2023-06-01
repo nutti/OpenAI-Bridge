@@ -270,15 +270,15 @@ class OPENAI_PT_AudioToolTranscribeSoundStrip(bpy.types.Panel):
         if props.selected_sound_strip:
             strip = context.scene.sequence_editor.active_strip
             if strip is not None:
-                ops.source_sound_strip_name = strip.name
+                ops.sound_strip_name = strip.name
         else:
-            ops.source_sound_strip_name = props.transcribe_target
+            ops.sound_strip_name = props.sound_strip
         if props.auto_sequence_channel:
             strip = context.scene.sequence_editor.active_strip
             if strip is not None:
-                ops.target_sequence_channel = strip.channel
+                ops.sequence_channel = strip.channel
         else:
-            ops.target_sequence_channel = props.sequence_channel
+            ops.sequence_channel = props.sequence_channel
 
         layout.separator()
 
@@ -373,7 +373,7 @@ class OPENAI_PT_AudioToolTranscribeAudioFile(bpy.types.Panel):
             else:
                 op.target_text_block_name = "Untitled"
         else:
-            target_text = sc.openai_audio_tool_target_text
+            target_text = sc.openai_audio_tool_target_text_block
             if target_text is not None:
                 op.target_text_block_name = target_text.name
 
@@ -505,7 +505,7 @@ class OPENAI_PT_ChatToolPrompt(bpy.types.Panel):
             row.prop(condition, "condition", text=f"{i}")
             op = row.operator(chat.OPENAI_OT_RemoveChatCondition.bl_idname,
                               text="", icon="CANCEL")
-            op.index_to_remove = i
+            op.remove_index = i
 
 
 @BlClassRegistry()
@@ -603,13 +603,13 @@ class OPENAI_PT_ChatToolLog(bpy.types.Panel):
                     op.topic = props.topic
                     op.part = part
                     op.code_index = code_index
-                    op.target = 'CLIPBOARD'
+                    op.target_type = 'CLIPBOARD'
                     op = c.operator(chat.OPENAI_OT_CopyChatCode.bl_idname,
                                     icon='TEXT', text="")
                     op.topic = props.topic
                     op.part = part
                     op.code_index = code_index
-                    op.target = 'TEXT'
+                    op.target_type = 'TEXT'
 
                     error_key = error_storage.get_error_key(
                         'CHAT', props.topic, part, code_index)
@@ -703,14 +703,14 @@ class OPENAI_PT_CodeToolPrompt(bpy.types.Panel):
         row.label(text="Conditions:")
         op = row.operator(code.OPENAI_OT_AddCodeCondition.bl_idname, text="",
                           icon="PLUS")
-        op.target = 'CODE_TOOL'
+        op.target_type = 'CODE_TOOL'
         for i, condition in enumerate(sc.openai_code_tool_conditions):
             row = layout.row()
             row.prop(condition, "condition", text=f"{i}")
             op = row.operator(code.OPENAI_OT_RemoveCodeCondition.bl_idname,
                               text="", icon="CANCEL")
             op.index_to_remove = i
-            op.target = 'CODE_TOOL'
+            op.target_type = 'CODE_TOOL'
 
 
 @BlClassRegistry()
@@ -743,11 +743,11 @@ class OPENAI_PT_CodeToolGeneratedCode(bpy.types.Panel):
             op = row.operator(code.OPENAI_OT_CopyCode.bl_idname, text="",
                               icon='DUPLICATE')
             op.code = code_name
-            op.target = 'CLIPBOARD'
+            op.target_type = 'CLIPBOARD'
             op = row.operator(code.OPENAI_OT_CopyCode.bl_idname, text="",
                               icon='TEXT')
             op.code = code_name
-            op.target = 'TEXT'
+            op.target_type = 'TEXT'
             op = row.operator(code.OPENAI_OT_RemoveCode.bl_idname, text="",
                               icon='TRASH')
             op.code = code_name
@@ -821,14 +821,14 @@ class OPENAI_PT_CodeToolGenerateCode(bpy.types.Panel):
         row.label(text="Conditions:")
         op = row.operator(code.OPENAI_OT_AddCodeCondition.bl_idname, text="",
                           icon="PLUS")
-        op.target = 'GENERATE_CODE'
+        op.target_type = 'GENERATE_CODE'
         for i, condition in enumerate(conditions):
             row = layout.row()
             row.prop(condition, "condition", text=f"{i}")
             op = row.operator(code.OPENAI_OT_RemoveCodeCondition.bl_idname,
                               text="", icon="CANCEL")
             op.index_to_remove = i
-            op.target = 'GENERATE_CODE'
+            op.target_type = 'GENERATE_CODE'
 
 
 @BlClassRegistry()
@@ -872,7 +872,7 @@ class OPENAI_PT_CodeToolEditCode(bpy.types.Panel):
         row.label(text="Conditions:")
         op = row.operator(code.OPENAI_OT_AddCodeCondition.bl_idname, text="",
                           icon="PLUS")
-        op.target = 'FIX_CODE'
+        op.target_type = 'FIX_CODE'
         conditions = sc.openai_code_tool_edit_code_conditions
         for i, condition in enumerate(conditions):
             row = layout.row()
@@ -880,7 +880,7 @@ class OPENAI_PT_CodeToolEditCode(bpy.types.Panel):
             op = row.operator(code.OPENAI_OT_RemoveCodeCondition.bl_idname,
                               text="", icon="CANCEL")
             op.index_to_remove = i
-            op.target = 'FIX_CODE'
+            op.target_type = 'FIX_CODE'
 
 
 @BlClassRegistry()
@@ -913,11 +913,11 @@ class OPENAI_PT_CodeToolGeneratedCodeTextEditor(bpy.types.Panel):
             op = row.operator(code.OPENAI_OT_CopyCode.bl_idname, text="",
                               icon='DUPLICATE')
             op.code = code_name
-            op.target = 'CLIPBOARD'
+            op.target_type = 'CLIPBOARD'
             op = row.operator(code.OPENAI_OT_CopyCode.bl_idname, text="",
                               icon='TEXT')
             op.code = code_name
-            op.target = 'TEXT'
+            op.target_type = 'TEXT'
             op = row.operator(code.OPENAI_OT_RemoveCode.bl_idname, text="",
                               icon='TRASH')
             op.code = code_name

@@ -169,7 +169,7 @@ class OPENAI_OT_OpenAudioFile(bpy.types.Operator, ImportHelper):
         sc = context.scene
         props = sc.openai_audio_tool_transcribe_audio_file_props
 
-        props.source_audio_filepath = self.properties.filepath
+        props.audio_filepath = self.properties.filepath
 
         context.area.tag_redraw()
 

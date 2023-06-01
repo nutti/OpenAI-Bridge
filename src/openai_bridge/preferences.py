@@ -144,7 +144,7 @@ class OPENAI_Preferences(bpy.types.AddonPreferences):
     )
     show_request_status: bpy.props.BoolProperty(
         name="Show Request Status",
-        description="Show Request Status",
+        description="Show request status",
         default=True,
     )
     request_status_location: bpy.props.IntVectorProperty(
@@ -301,7 +301,7 @@ class OPENAI_Preferences(bpy.types.AddonPreferences):
             row.prop(self, "async_execution")
             row = col.row()
             if self.async_execution:
-                row.prop(self, "show_request_status", text="Show Status")
+                row.prop(self, "show_request_status")
                 if self.show_request_status:
                     row.prop(self, "request_status_location", expand=True,
                              text="Location")

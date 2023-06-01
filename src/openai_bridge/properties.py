@@ -38,7 +38,7 @@ class OPENAI_ImageToolGenerateImageProperties(bpy.types.PropertyGroup):
     )
     image_name: bpy.props.StringProperty(
         name="Image Name",
-        description="Name of the image data block for generated",
+        description="Name for a generated image",
     )
 
 
