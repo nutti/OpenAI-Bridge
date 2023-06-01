@@ -2,7 +2,7 @@
 
 # Change Log
 
-## [Unreleased](https://github.com/nutti/OpenAI-Bridge/compare/v0.2.0...main)
+## [Unreleased](https://github.com/nutti/OpenAI-Bridge/compare/v1.0.0...main)
 
 <!-- markdownlint-disable-next-line MD013 -->
 ## [Version 1.0.0](https://github.com/nutti/OpenAI-Bridge/compare/v0.2.0...v1.0.0) - 2023.6.1
