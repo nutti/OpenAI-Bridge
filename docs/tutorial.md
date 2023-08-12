@@ -4,43 +4,56 @@
 
 - [Tutorials](#tutorials)
   - [Preparation](#preparation)
+    - [Register API (Required)](#register-api-required)
+    - [Enable Audio Input (Optional)](#enable-audio-input-optional)
+    - [Usage Statistics](#usage-statistics)
+    - [Add-on Preferences](#add-on-preferences)
   - [Image Tool](#image-tool)
     - [Generate Images](#generate-images)
       - [1. From Sidebar Panel](#1-from-sidebar-panel)
       - [2. From Tool](#2-from-tool)
     - [Edit Images](#edit-images)
+      - [1. From Sidebar Panel](#1-from-sidebar-panel-1)
+      - [2. From Tool](#2-from-tool-1)
     - [Generate Variation Images](#generate-variation-images)
   - [Audio Tool](#audio-tool)
     - [Transcribe Sound Strip](#transcribe-sound-strip)
-      - [1. From Sidebar Panel](#1-from-sidebar-panel-1)
-      - [2. From Tool](#2-from-tool-1)
-    - [Transcribe Audio Data](#transcribe-audio-data)
-  - [Chat Tool](#chat-tool)
-    - [Chat](#chat)
       - [1. From Sidebar Panel](#1-from-sidebar-panel-2)
       - [2. From Tool](#2-from-tool-2)
+    - [Transcribe Audio Data](#transcribe-audio-data)
+      - [1. From Audio File](#1-from-audio-file)
+      - [2. From Sound Data Block](#2-from-sound-data-block)
+  - [Chat Tool](#chat-tool)
+    - [Chat](#chat)
+      - [1. From Sidebar Panel](#1-from-sidebar-panel-3)
+      - [2. From Tool](#2-from-tool-3)
     - [Ask Blender Operators/Properties](#ask-blender-operatorsproperties)
   - [Code Tool](#code-tool)
     - [Generate Code](#generate-code)
     - [Edit Code](#edit-code)
     - [Generate Code Example](#generate-code-example)
     - [Execute Code Immediately](#execute-code-immediately)
+      - [1. Execute Code from Sidebar Panel (Prompt)](#1-execute-code-from-sidebar-panel-prompt)
+      - [2. Execute Code from Sidebar Panel (Audio Input)](#2-execute-code-from-sidebar-panel-audio-input)
+      - [3. Execute Code from Tool (Prompt)](#3-execute-code-from-tool-prompt)
+      - [4. Execute Code from Tool (Audio Input)](#4-execute-code-from-tool-audio-input)
 
 ## Preparation
 
 ### Register API (Required)
 
-This add-on requires an API key to access an OpenAI API.
+This add-on requires an API key to access an OpenAI API.  
 You need to create an OpenAI account and get an API key from the
 [OpenAI Official Site](https://openai.com/blog/openai-api).
 
-Note that you need to pay to use an OpenAI API.
+Note that you need to pay to use an OpenAI API.  
 Before using this add-on, check the [Pricing Page](https://openai.com/pricing).
 
 Once you have got an API key, enter the OpenAI API key in the add-on
-preferences (a).
-Click the [Check API Connection] button (b) and check if the status is OK (c).
-If the status is not OK, see the error message and solve the issue.
+preferences (a).  
+Click the [Check API Connection] button (b) and check if the status is
+OK (c).  
+If the status is not OK, see the error message and solve the issue.  
 If you are behind the proxy, input [HTTP Proxy] and [HTTPS Proxy].
 
 ![Add-on Preferences](images/tutorial/add-on_preferences.png)
@@ -49,7 +62,7 @@ You can change the other properties in the add-on preferences.
 
 ### Enable Audio Input (Optional)
 
-Code Tool supports the audio input.
+Code Tool supports the audio input.  
 To enable the audio input, click [Enable Audio Input] button on the category
 at the add-on preferences.
 
@@ -69,29 +82,31 @@ You can see the statistics for the usage of the OpenAI API.
 The add-on preferences allows you to change the behavior of the operators.
 
 <!-- markdownlint-disable MD013 -->
+<!-- markdownlint-disable MD033 -->
 
 |Category|Property|Description|
 |---|---|---|
 |System|Popup Menu Width|Width of the popup menu from workspace tools.|
 ||Async Execution|Execute operations asynchronously.|
 ||Show Status|Show request status.|
-|Audio Tool|Audio Tool Model|Model to be used for Audio Tool. (Supported Model: whisper-1)|
-|Chat Tool|Chat Tool Model|Model to be used for Chat Tool. (Supported Model: gpt-3.5-turbo, gpt-4, gpt-4-32k)|
+|Audio Tool|Audio Tool Model|Model to be used for Audio Tool.<br>(Supported Model: whisper-1)|
+|Chat Tool|Chat Tool Model|Model to be used for Chat Tool.<br>(Supported Model: gpt-3.5-turbo, gpt-4, gpt-4-32k)|
 ||Wrap Width|Wrap width of the chat tool log|
-|Code Tool|Code Tool Model|Model to be used for Code Tool. (Supported Model: gpt-3.5-turbo, gpt-4, gpt-4-32k)|
-||Audio Input Configuration > Language|Language for the audio input in the code tool. This property is enabled when the audio input is enabled.|
-||Recording Configuration > Format|Formats for the audio recording. This property is enabled when the audio input is enabled.|
-||Recording Configuration > Channels|Channels for the audio recording. This property is enabled when the audio input is enabled.|
-||Recording Configuration > Rate|Sampling rate for the audio recording. This property is enabled when the audio input is enabled.|
-||Recording Configuration > Chuck Size|Frames per buffer. This property is enabled when the audio input is enabled.|
-||Recording Configuration > Silence Threshold|Threshold to stop the audio recording. This property is enabled when the audio input is enabled.|
-||Recording Configuration > Silence Duration Limit|The seconds to stop the audio recording. This property is enabled when the audio input is enabled.|
+|Code Tool|Code Tool Model|Model to be used for Code Tool.<br>(Supported Model: gpt-3.5-turbo, gpt-4, gpt-4-32k)|
+||Audio Input Configuration > Language|Language for the audio input in the code tool.<br>This property is enabled when the audio input is enabled.|
+||Recording Configuration > Format|Formats for the audio recording.<br>This property is enabled when the audio input is enabled.|
+||Recording Configuration > Channels|Channels for the audio recording.<br>This property is enabled when the audio input is enabled.|
+||Recording Configuration > Rate|Sampling rate for the audio recording.<br>This property is enabled when the audio input is enabled.|
+||Recording Configuration > Chuck Size|Frames per buffer.<br>This property is enabled when the audio input is enabled.|
+||Recording Configuration > Silence Threshold|Threshold to stop the audio recording.<br>This property is enabled when the audio input is enabled.|
+||Recording Configuration > Silence Duration Limit|The seconds to stop the audio recording.<br>This property is enabled when the audio input is enabled.|
 
+<!-- markdownlint-enable MD033 -->
 <!-- markdownlint-enable MD013 -->
 
 ## Image Tool
 
-Image Tool can generate/edit an image.
+Image Tool can generate/edit an image.  
 Image Tool can be accessed from [OpenAI] tab on the Sidebar Panel or
 from the tool [OpenAI Image Tool] in Image Editor.
 
@@ -118,7 +133,7 @@ There are 2 ways to generate an image from a prompt.
 |---|---|
 |Size|The size of the images to generate.|
 |Num|The number of images to generate.|
-|Name|Name for a generated image. If [Auto] is checked, the name will be generated automatically.| <!-- markdownlint-disable-line MD013 -->
+|Name|Name for a generated image.<br>If [Auto] is checked, the name will be generated automatically.| <!-- markdownlint-disable-line MD013 --> <!-- markdownlint-disable-line MD033 -->
 
 You can load a generated image into Blender or parmanently remove it from
 a file.
@@ -142,7 +157,7 @@ a file.
 |---|---|
 |Size|The size of the images to generate.|
 |Num|The number of images to generate.|
-|Name|Name for a generated image. If [Auto] is checked, the name will be generated automatically.| <!-- markdownlint-disable-line MD013 -->
+|Name|Name for a generated image.<br>If [Auto] is checked, the name will be generated automatically.| <!-- markdownlint-disable-line MD013 --> <!-- markdownlint-disable-line MD033 -->
 
 ### Edit Images
 
@@ -213,13 +228,11 @@ a file.
 
 ## Audio Tool
 
-Audio Tool can transcribe an audio data.
+Audio Tool can transcribe an audio data.  
 Audio Tool can be accessed from [OpenAI] tab on the Sidebar Panel in Sequence
 Editor/Text Editor or from the tool [OpenAI Audio Tool] in Sequence Editor.
 
 ### Transcribe Sound Strip
-
-> TODO: Write from here
 
 There are 2 ways to transcribe a sound strip.
 
@@ -237,14 +250,16 @@ There are 2 ways to transcribe a sound strip.
 1. The text strip with the transcription text is created on the channel.
 
 <!-- markdownlint-disable MD013 -->
+<!-- markdownlint-disable MD033 -->
 
 |**Properties**||
 |---|---|
 |Prompt|Optional text to specify the style.|
 |Language|Language of the input audio.|
-|Temperature|Higher value makes the output more random. Lower value makes the output more deterministic.|
-|Result|Sequence channel where the transcription result to be created. If [Auto] is checked, the channel is selected automatically.|
+|Temperature|Higher value makes the output more random.<br>Lower value makes the output more deterministic.|
+|Result|Sequence channel where the transcription result to be created.<br>If [Auto] is checked, the channel is selected automatically.|
 
+<!-- markdownlint-enable MD033 -->
 <!-- markdownlint-enable MD013 -->
 
 #### 2. From Tool
@@ -261,14 +276,16 @@ There are 2 ways to transcribe a sound strip.
 1. The text strip with the transcription text is created on the channel.
 
 <!-- markdownlint-disable MD013 -->
+<!-- markdownlint-disable MD033 -->
 
 |**Properties**||
 |---|---|
 |Prompt|Optional text to specify the style.|
 |Language|Language of the input audio.|
-|Temperature|Higher value makes the output more random. Lower value makes the output more deterministic.|
-|Result|Sequence channel where the transcription result to be created. If [Auto] is checked, the channel is selected automatically.|
+|Temperature|Higher value makes the output more random.<br>Lower value makes the output more deterministic.|
+|Result|Sequence channel where the transcription result to be created.<br>If [Auto] is checked, the channel is selected automatically.|
 
+<!-- markdownlint-enable MD033 -->
 <!-- markdownlint-enable MD013 -->
 
 ### Transcribe Audio Data
@@ -294,15 +311,16 @@ There are 2 ways to transcribe an audio data.
 1. The transcription text appears in the Text Editor.
 
 <!-- markdownlint-disable MD013 -->
+<!-- markdownlint-disable MD033 -->
 
 |**Properties**||
 |---|---|
 |Prompt|Optional text to specify the style.|
 |Language|Language of the input audio.|
-|Temperature|Higher value makes the output more random. Lower value makes the output more deterministic.|
-|Result|Name of target text block to where the transcript is
-saved. If [Current Text] is checked, the transcription text appears in the current text.|
+|Temperature|Higher value makes the output more random.<br>Lower value makes the output more deterministic.|
+|Result|Name of target text block to where the transcript is saved.<br>If [Current Text] is checked, the transcription text appears in the current text.|
 
+<!-- markdownlint-enable MD033 -->
 <!-- markdownlint-enable MD013 -->
 
 #### 2. From Sound Data Block
@@ -320,15 +338,16 @@ saved. If [Current Text] is checked, the transcription text appears in the curre
 1. The transcription text appears in the Text Editor.
 
 <!-- markdownlint-disable MD013 -->
+<!-- markdownlint-disable MD033 -->
 
 |**Properties**||
 |---|---|
 |Prompt|Optional text to specify the style.|
 |Language|Language of the input audio.|
-|Temperature|Higher value makes the output more random. Lower value makes the output more deterministic.|
-|Result|Name of target text block to where the transcript is
-saved. If [Current Text] is checked, the transcription text appears in the current text.|
+|Temperature|Higher value makes the output more random.<br>Lower value makes the output more deterministic.|
+|Result|Name of target text block to where the transcript is saved.<br>If [Current Text] is checked, the transcription text appears in the current text.|
 
+<!-- markdownlint-enable MD033 -->
 <!-- markdownlint-enable MD013 -->
 
 ## Chat Tool
@@ -342,7 +361,7 @@ Chat Tool allows you to chat about Blender or ask about operators/properties.
 |Editor|3D Viewport|
 
 Chat Tool can be accessed from [OpenAI] tab on the Sidebar or from the tool
-[OpenAI Chat Tool] in 3D Viewport.
+[OpenAI Chat Tool] in 3D Viewport.  
 There are 2 ways to chat.
 
 #### 1. From Sidebar Panel
@@ -360,8 +379,8 @@ There are 2 ways to chat.
 1. Click the [▶] button. (c)
 1. The response appears in the [Log] sub-panel. (d)
 
-You can copy a chat log to the clipboard or to the text block. (e)
-If the response contains Python code, you can execute it. (f)
+You can copy a chat log to the clipboard or to the text block. (e)  
+If the response contains Python code, you can execute it. (f)  
 You can also check the error message if the code fails to execute.
 
 #### 2. From Tool
@@ -380,8 +399,8 @@ You can also check the error message if the code fails to execute.
 1. Click the [OK] button. (e)
 1. The response appears in the [Log] sub-panel.
 
-You can copy a chat log to the clipboard or to text.
-If the response contains Python code, you can execute it directly.
+You can copy a chat log to the clipboard or to text.  
+If the response contains Python code, you can execute it directly.  
 You can also check the error message if the code fails to execute.
 
 ### Ask Blender Operators/Properties
@@ -424,7 +443,7 @@ Code tool can generate a Python code and display in the Text Editor.
 1. Generated code can be listed on the text block.
 
 You can execute the generated code or copy it to the text block from
-[Genereated Code] sub-panel. (c)(d)
+[Genereated Code] sub-panel. (c)(d)  
 You can also check the error message if the code fails to execute.
 
 ### Edit Code
@@ -448,7 +467,7 @@ Code tool can edit a Python code on the text block.
    `edit-<original_text_block>`.
 
 You can execute the generated code or copy it to the text block from
-[Genereated Code] sub-panel. (d)(e)
+[Genereated Code] sub-panel. (d)(e)  
 You can also check the error message if the code fails to execute.
 
 ### Generate Code Example
@@ -470,12 +489,12 @@ operators/properties from right-click menu.
    the name `[Example] <python_api>`.
 
 You can execute the generated code or copy it to the text block from
-[Genereated Code] sub-panel.
+[Genereated Code] sub-panel.  
 You can also check the error message if the code fails to execute.
 
 ### Execute Code Immediately
 
-Code Tool can execute the genereated code from the prompt or audio input.
+Code Tool can execute the genereated code from the prompt or audio input.  
 There are 4 ways to do this.
 
 #### 1. Execute Code from Sidebar Panel (Prompt)
@@ -495,7 +514,7 @@ There are 4 ways to do this.
 1. Generated code is executed. (c)
 
 You can execute the generated code or copy it to the text block from
-[Genereated Code] sub-panel. (d)(e)
+[Genereated Code] sub-panel. (d)(e)  
 You can also check the error message if the code fails to execute.
 
 #### 2. Execute Code from Sidebar Panel (Audio Input)
@@ -516,7 +535,7 @@ You can also check the error message if the code fails to execute.
 1. Generated code is executed. (c)
 
 You can execute the generated code or copy it to the text block from
-[Genereated Code] sub-panel.
+[Genereated Code] sub-panel.  
 You can also check the error message if the code fails to execute.
 
 #### 3. Execute Code from Tool (Prompt)
@@ -537,7 +556,7 @@ You can also check the error message if the code fails to execute.
 1. Generated code is executed.
 
 You can execute the generated code or copy it to the text block from
-[Genereated Code] sub-panel on [Code Tool] panel.
+[Genereated Code] sub-panel on [Code Tool] panel.  
 You can also check the error message if the code fails to execute.
 
 #### 4. Execute Code from Tool (Audio Input)
@@ -558,5 +577,5 @@ You can also check the error message if the code fails to execute.
 1. Generated code is executed. (d)
 
 You can execute the generated code or copy it to the text block from
-[Genereated Code] sub-panel on [Code Tool] panel.
+[Genereated Code] sub-panel on [Code Tool] panel.  
 You can also check the error message if the code fails to execute.
