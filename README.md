@@ -25,15 +25,15 @@ The features of this add-on are as follows.
   * Generate Variation Images: Generate variation images using the OpenAI
     Image API.
   * Supported Models: 'DALL-E'
-* Audio
+* Audio Tool
   * Transcribe Audio: Transcribe audio using the OpenAI Audio API.
   * Supported Models: 'whisper-1'
-* Chat
+* Chat Tool
   * Chat: Chat using the OpenAI Chat API.
   * Ask Blender Operators/Properties: Ask Blender operators/properties from the
     right-click menu.
   * Supported Models: 'gpt-3.5-turbo', 'gpt-4', 'gpt-4-32k'
-* Code
+* Code Tool
   * Generate Code: Generate Blender Python specific code using the OpenAI Chat API.
   * Edit Code: Edit Blender Python specific code using the OpenAI Chat API.
   * Generate Code Examples: Generate code examples using Python API
